@@ -338,6 +338,14 @@ The cpu_options supports the following:
 * `threads_per_core` - (Optional, Int) The number of threads per CPU core.
 * `topology_type` - (Optional) The CPU topology type of the instance. Valid values: `ContinuousCoreToHTMapping`, `DiscreteCoreToHTMapping`.
 
+### `security_options`
+
+The security_options supports the following:
+
+* `confidential_computing_mode` - (Optional, ForceNew) The confidential computing mode of the instance. Valid values: `TDX`, `Enclave`.
+  - `TDX`: Enable Intel TDX confidential computing mode.
+  - `Enclave`: Use Enclave to build confidential computing environment.
+
 ## Attributes Reference
 
 The following attributes are exported:
