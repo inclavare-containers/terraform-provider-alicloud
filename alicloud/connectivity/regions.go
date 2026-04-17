@@ -19,7 +19,6 @@ const (
 	GuangZhou   = Region("cn-guangzhou")
 	NanJing     = Region("cn-nanjing")
 	FuZhou      = Region("cn-fuzhou")
-	ZhongWei    = Region("cn-zhongwei")
 
 	APSouthEast1 = Region("ap-southeast-1")
 	APNorthEast1 = Region("ap-northeast-1")
@@ -61,7 +60,7 @@ const (
 )
 
 var ValidRegions = []Region{
-	Hangzhou, Qingdao, Beijing, Shenzhen, Hongkong, Shanghai, Zhangjiakou, Huhehaote, ChengDu, HeYuan, WuLanChaBu, GuangZhou, NanJing, FuZhou, ZhongWei,
+	Hangzhou, Qingdao, Beijing, Shenzhen, Hongkong, Shanghai, Zhangjiakou, Huhehaote, ChengDu, HeYuan, WuLanChaBu, GuangZhou, NanJing, FuZhou,
 	USWest1, USEast1, USSouthEast1,
 	APNorthEast1, APNorthEast2, APSouthEast1, APSouthEast2, APSouthEast3, APSouthEast5, APSouthEast6, APSouthEast7,
 	APSouth1,

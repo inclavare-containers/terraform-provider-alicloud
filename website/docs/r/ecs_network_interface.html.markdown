@@ -22,7 +22,7 @@ For information about ECS Network Interface and how to use it, see [What is Netw
 Basic Usage
 
 <div style="display: block;margin-bottom: 40px;"><div class="oics-button" style="float: right;position: absolute;margin-bottom: 10px;">
-  <a href="https://api.aliyun.com/terraform?resource=alicloud_ecs_network_interface&exampleId=a3add713-a074-f8cf-66fc-7636ce3ca47f45f68cb5&activeTab=example&spm=docs.r.ecs_network_interface.0.a3add713a0&intl_lang=EN_US" target="_blank">
+  <a href="https://api.aliyun.com/terraform?resource=alicloud_ecs_network_interface&exampleId=424f8531-e314-8cfb-bb6e-ea1f70e0c71274f18f45&activeTab=example&spm=docs.r.ecs_network_interface.0.424f8531e3&intl_lang=EN_US" target="_blank">
     <img alt="Open in AliCloud" src="https://img.alicdn.com/imgextra/i1/O1CN01hjjqXv1uYUlY56FyX_!!6000000006049-55-tps-254-36.svg" style="max-height: 44px; max-width: 100%;">
   </a>
 </div></div>
@@ -49,8 +49,8 @@ resource "alicloud_vswitch" "default" {
 }
 
 resource "alicloud_security_group" "default" {
-  security_group_name = var.name
-  vpc_id              = alicloud_vpc.default.id
+  name   = var.name
+  vpc_id = alicloud_vpc.default.id
 }
 
 data "alicloud_resource_manager_resource_groups" "default" {
@@ -94,7 +94,6 @@ The following arguments are supported:
 * `instance_type` - (Optional, ForceNew, Available since v1.223.0) The type of the ENI. Default value: `Secondary`. Valid values: `Secondary`, `Trunk`.
 * `network_interface_traffic_mode` - (Optional, ForceNew, Available since v1.223.0) The communication mode of the ENI. Default value: `Standard`. Valid values: `Standard`, `HighPerformance`.
 * `source_dest_check` - (Optional, Bool, Available since v1.252.0) Indicates whether the source and destination IP address check feature is enabled. To improve network security, enable this feature. Default value: `false`. Valid values: `true`, `false`.
-* `delete_on_release` - (Optional, Bool) Specifies whether to release the ENI when the associated instance is released. Valid values: `true`, `false`.
 * `name` - (Optional, Deprecated since v1.123.1) Field `name` has been deprecated from provider version 1.123.1. New field `network_interface_name` instead
 * `private_ip` - (Optional, ForceNew, Deprecated since v1.123.1) Field `private_ip` has been deprecated from provider version 1.123.1. New field `primary_ip_address` instead
 * `private_ips` - (Optional, List, Deprecated since v1.123.1) Field `private_ips` has been deprecated from provider version 1.123.1. New field `private_ip_addresses` instead

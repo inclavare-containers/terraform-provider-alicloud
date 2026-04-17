@@ -10,34 +10,25 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 )
 
-func resourceAliCloudRdsBackup() *schema.Resource {
+func resourceAlicloudRdsBackup() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceAliCloudRdsBackupCreate,
-		Read:   resourceAliCloudRdsBackupRead,
-		Update: resourceAliCloudRdsBackupUpdate,
-		Delete: resourceAliCloudRdsBackupDelete,
+		Create: resourceAlicloudRdsBackupCreate,
+		Read:   resourceAlicloudRdsBackupRead,
+		Update: resourceAlicloudRdsBackupUpdate,
+		Delete: resourceAlicloudRdsBackupDelete,
 		Importer: &schema.ResourceImporter{
 			State: schema.ImportStatePassthrough,
 		},
 		Timeouts: &schema.ResourceTimeout{
-			Create: schema.DefaultTimeout(5 * time.Minute),
-			Update: schema.DefaultTimeout(5 * time.Minute),
-			Delete: schema.DefaultTimeout(5 * time.Minute),
+			Create: schema.DefaultTimeout(20 * time.Minute),
+			Delete: schema.DefaultTimeout(20 * time.Minute),
 		},
 		Schema: map[string]*schema.Schema{
-			"backup_id": {
-				Type:     schema.TypeString,
-				Computed: true,
-			},
 			"backup_method": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 				ForceNew: true,
-			},
-			"backup_retention_period": {
-				Type:     schema.TypeInt,
-				Optional: true,
 			},
 			"backup_strategy": {
 				Type:     schema.TypeString,
@@ -58,11 +49,7 @@ func resourceAliCloudRdsBackup() *schema.Resource {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
-			"status": {
-				Type:     schema.TypeString,
-				Computed: true,
-			},
-			"store_status": {
+			"backup_id": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
@@ -70,41 +57,38 @@ func resourceAliCloudRdsBackup() *schema.Resource {
 				Type:     schema.TypeBool,
 				Optional: true,
 			},
+			"store_status": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
 		},
 	}
 }
 
-func resourceAliCloudRdsBackupCreate(d *schema.ResourceData, meta interface{}) error {
-
+func resourceAlicloudRdsBackupCreate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*connectivity.AliyunClient)
 	rdsService := RdsService{client}
-	action := "CreateBackup"
-	var request map[string]interface{}
 	var response map[string]interface{}
-	query := make(map[string]interface{})
+	action := "CreateBackup"
+	request := make(map[string]interface{})
+	request["SourceIp"] = client.SourceIp
 	var err error
-	request = make(map[string]interface{})
-	request["RegionId"] = client.RegionId
-
 	if v, ok := d.GetOk("backup_method"); ok {
 		request["BackupMethod"] = v
 	}
-	if v, ok := d.GetOkExists("backup_retention_period"); ok {
-		request["BackupRetentionPeriod"] = v
-	}
-	request["DBInstanceId"] = d.Get("db_instance_id")
 	if v, ok := d.GetOk("backup_strategy"); ok {
 		request["BackupStrategy"] = v
 	}
 	if v, ok := d.GetOk("backup_type"); ok {
 		request["BackupType"] = v
 	}
+	request["DBInstanceId"] = d.Get("db_instance_id")
 	if v, ok := d.GetOk("db_name"); ok {
 		request["DBName"] = v
 	}
 	wait := incrementalWait(3*time.Second, 5*time.Second)
 	err = resource.Retry(d.Timeout(schema.TimeoutCreate), func() *resource.RetryError {
-		response, err = client.RpcPost("Rds", "2014-08-15", action, query, request, true)
+		response, err = client.RpcPost("Rds", "2014-08-15", action, nil, request, false)
 		if err != nil {
 			if IsExpectedErrors(err, []string{"BackupJobExists"}) || NeedRetry(err) {
 				wait()
@@ -115,7 +99,6 @@ func resourceAliCloudRdsBackupCreate(d *schema.ResourceData, meta interface{}) e
 		return nil
 	})
 	addDebug(action, response, request)
-
 	if err != nil {
 		return WrapErrorf(err, DefaultErrorMsg, "alicloud_rds_backup", action, AlibabaCloudSdkGoERROR)
 	}
@@ -127,43 +110,37 @@ func resourceAliCloudRdsBackupCreate(d *schema.ResourceData, meta interface{}) e
 	time.Sleep(1 * time.Minute)
 	object, err := rdsService.DescribeBackupTasks(d.Get("db_instance_id").(string), response["BackupJobId"].(string))
 	d.SetId(fmt.Sprint(request["DBInstanceId"], ":", object["BackupId"].(string)))
-
-	return resourceAliCloudRdsBackupRead(d, meta)
+	return resourceAlicloudRdsBackupRead(d, meta)
 }
 
-func resourceAliCloudRdsBackupRead(d *schema.ResourceData, meta interface{}) error {
+func resourceAlicloudRdsBackupRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*connectivity.AliyunClient)
-	rdsServiceV2 := RdsServiceV2{client}
-
-	objectRaw, err := rdsServiceV2.DescribeRdsBackup(d.Id())
+	rdsService := RdsService{client}
+	object, err := rdsService.DescribeRdsBackup(d.Id())
 	if err != nil {
-		if !d.IsNewResource() && NotFoundError(err) {
-			log.Printf("[DEBUG] Resource alicloud_rds_backup DescribeRdsBackup Failed!!! %s", err)
+		if NotFoundError(err) {
+			log.Printf("[DEBUG] Resource alicloud_rds_backup rdsService.DescribeRdsBackup Failed!!! %s", err)
 			d.SetId("")
 			return nil
 		}
 		return WrapError(err)
 	}
 
-	d.Set("backup_method", objectRaw["BackupMethod"])
-	d.Set("backup_type", objectRaw["BackupType"])
-	d.Set("db_instance_id", objectRaw["DBInstanceId"])
-	d.Set("status", objectRaw["MetaStatus"])
-	d.Set("store_status", objectRaw["StoreStatus"])
-	d.Set("backup_id", objectRaw["BackupId"])
-
+	d.Set("backup_method", object["BackupMethod"])
+	d.Set("backup_type", object["BackupType"])
+	d.Set("db_instance_id", object["DBInstanceId"])
+	d.Set("backup_id", object["BackupId"])
+	d.Set("store_status", object["StoreStatus"])
 	return nil
 }
-
-func resourceAliCloudRdsBackupUpdate(d *schema.ResourceData, meta interface{}) error {
-	log.Printf("[INFO] Cannot update resource Alicloud Resource Backup.")
-	return nil
+func resourceAlicloudRdsBackupUpdate(d *schema.ResourceData, meta interface{}) error {
+	log.Println(fmt.Sprintf("[WARNING] The resouce has not update operation."))
+	return resourceAlicloudRdsBackupRead(d, meta)
 }
-
-func resourceAliCloudRdsBackupDelete(d *schema.ResourceData, meta interface{}) error {
-
+func resourceAlicloudRdsBackupDelete(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*connectivity.AliyunClient)
 	action := "DeleteBackup"
+	parts, err := ParseResourceId(d.Id(), 2)
 	if d.Get("store_status").(string) == "Disabled" {
 		if !d.Get("remove_from_state").(bool) {
 			return WrapError(Error("the resource can not be deleted at this time and you can set remove_from_state to true to remove it."))
@@ -171,18 +148,14 @@ func resourceAliCloudRdsBackupDelete(d *schema.ResourceData, meta interface{}) e
 			return nil
 		}
 	}
-	var request map[string]interface{}
 	var response map[string]interface{}
-	query := make(map[string]interface{})
-	var err error
-	request = make(map[string]interface{})
-	request["BackupId"] = d.Id()
-	request["RegionId"] = client.RegionId
-
-	request["DBInstanceId"] = d.Get("db_instance_id")
+	request := map[string]interface{}{
+		"BackupId":     parts[1],
+		"DBInstanceId": parts[0],
+	}
 	wait := incrementalWait(3*time.Second, 5*time.Second)
 	err = resource.Retry(d.Timeout(schema.TimeoutDelete), func() *resource.RetryError {
-		response, err = client.RpcPost("Rds", "2014-08-15", action, query, request, true)
+		response, err = client.RpcPost("Rds", "2014-08-15", action, nil, request, false)
 		if err != nil {
 			if NeedRetry(err) {
 				wait()
@@ -193,13 +166,8 @@ func resourceAliCloudRdsBackupDelete(d *schema.ResourceData, meta interface{}) e
 		return nil
 	})
 	addDebug(action, response, request)
-
 	if err != nil {
-		if NotFoundError(err) {
-			return nil
-		}
 		return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
 	}
-
 	return nil
 }

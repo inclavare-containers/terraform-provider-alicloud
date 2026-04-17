@@ -86,14 +86,19 @@ jobs:
       contents: read
     steps:
       - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
       - name: Setup Go
         uses: actions/setup-go@v4
         with:
           go-version: '1.24.x'
-      - uses: jitterbit/get-changed-files@v1
+      - name: Get changed files
         id: files
-        with:
-          format: 'json'
+        run: |
+          BASE="${{ github.event.pull_request.base.sha }}"
+          HEAD="${{ github.event.pull_request.head.sha }}"
+          ADDED_MODIFIED=$(git diff --name-only --diff-filter=AM "$BASE" "$HEAD" | jq -Rsc 'split("\n") | map(select(. != ""))')
+          echo "added_modified=$ADDED_MODIFIED" >> "$GITHUB_OUTPUT"
       - name: Checking the docs content
         run: |
           readarray -t changed_files <<<"$(jq -r '.[]' <<<'${{ steps.files.outputs.added_modified }}')"

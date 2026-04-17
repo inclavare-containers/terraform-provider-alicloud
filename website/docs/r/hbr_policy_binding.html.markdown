@@ -73,13 +73,12 @@ resource "alicloud_hbr_policy_binding" "default" {
 }
 ```
 
-
 📚 Need more examples? [VIEW MORE EXAMPLES](https://api.aliyun.com/terraform?activeTab=sample&source=Sample&sourcePath=OfficialSample:alicloud_hbr_policy_binding&spm=docs.r.hbr_policy_binding.example&intl_lang=EN_US)
 
 ## Argument Reference
 
 The following arguments are supported:
-* `advanced_options` - (Optional, ForceNew, Computed, Set) Backup Advanced Options See [`advanced_options`](#advanced_options) below.
+* `advanced_options` - (Optional, ForceNew, Computed, List) Backup Advanced Options See [`advanced_options`](#advanced_options) below.
 * `cross_account_role_name` - (Optional, ForceNew, Available since v1.230.0) Valid only when CrossAccountType = CROSS_ACCOUNT, indicating the name of the cross-account authorization role of the data source, and the management account uses this role to access the data source.
 * `cross_account_type` - (Optional, ForceNew, Computed, Available since v1.230.0) Cross-account type, supported
 * `cross_account_user_id` - (Optional, ForceNew, Int, Available since v1.230.0) Valid only when CrossAccountType = CROSS_ACCOUNT, indicating the ID of the actual account to which the data source belongs.
@@ -104,15 +103,7 @@ The following arguments are supported:
 ### `advanced_options`
 
 The advanced_options supports the following:
-* `oss_detail` - (Optional, Set, Available since v1.273.0) OSS Backup Advanced options See [`oss_detail`](#advanced_options-oss_detail) below.
-* `udm_detail` - (Optional, ForceNew, Computed, Set) ECS Backup Advanced options See [`udm_detail`](#advanced_options-udm_detail) below.
-
-### `advanced_options-oss_detail`
-
-The advanced_options-oss_detail supports the following:
-* `ignore_archive_object` - (Optional, Available since v1.273.0) Archived objects are not prompted in task statistics and failed file lists
-* `inventory_cleanup_policy` - (Optional, Available since v1.273.0) Whether to delete the inventory file after the backup. Valid only when using the OSS inventory. Supported: NO_CLEANUP: Do not delete. DELETE_CURRENT: Deletes the current file. DELETE_CURRENT_AND_PREVIOUS: Deletes all files.
-* `inventory_id` - (Optional, Available since v1.273.0) The name of the OSS inventory. If the value is not empty, the OSS inventory will be used for performance tuning. We recommend that you use a list to improve incremental performance when backing up more than 0.1 billion OSS objects. OSS charges the storage fee for the list file separately. It takes time to generate the OSS inventory file. The backup may fail before the OSS inventory file is generated. You can wait for the next cycle.
+* `udm_detail` - (Optional, ForceNew, Computed, List) ECS Backup Advanced options See [`udm_detail`](#advanced_options-udm_detail) below.
 
 ### `advanced_options-udm_detail`
 
@@ -124,8 +115,8 @@ The advanced_options-udm_detail supports the following:
 ## Attributes Reference
 
 The following attributes are exported:
-* `id` - The ID of the resource supplied above. The value is formulated as `<policy_id>:<source_type>:<data_source_id>`.
-* `create_time` - The creation time of the resource.
+* `id` - The ID of the resource supplied above.The value is formulated as `<policy_id>:<source_type>:<data_source_id>`.
+* `create_time` - The creation time of the resource
 
 ## Timeouts
 

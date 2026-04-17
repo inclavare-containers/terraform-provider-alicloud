@@ -9,8 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Masterminds/semver"
-	"github.com/alibabacloud-go/cs-20151215/v7/client"
+	"github.com/alibabacloud-go/cs-20151215/v5/client"
 	"github.com/alibabacloud-go/tea/tea"
 	"github.com/aliyun/terraform-provider-alicloud/alicloud/connectivity"
 	"github.com/denverdino/aliyungo/cs"
@@ -232,6 +231,36 @@ func (s *CsClient) DescribeClusterDetail(id string) (*client.DescribeClusterDeta
 	return response.Body, nil
 }
 
+// DescribeClusterKubeConfig return cluster kube_config credential.
+// It's used for kubernetes/managed_kubernetes/serverless_kubernetes.
+// Deprecated, use CsClient.DescribeClusterKubeConfigWithExpiration
+func (s *CsService) DescribeClusterKubeConfig(clusterId string, isResource bool) (*cs.ClusterConfig, error) {
+	invoker := NewInvoker()
+	var response interface{}
+	var requestInfo *cs.Client
+	var config *cs.ClusterConfig
+	if err := invoker.Run(func() error {
+		raw, err := s.client.WithCsClient(func(csClient *cs.Client) (interface{}, error) {
+			requestInfo = csClient
+			return csClient.DescribeClusterUserConfig(clusterId, false)
+		})
+		response = raw
+		return err
+	}); err != nil {
+		if isResource {
+			return nil, WrapErrorf(err, DefaultErrorMsg, clusterId, "DescribeClusterUserConfig", DenverdinoAliyungo)
+		}
+		return nil, WrapErrorf(err, DataDefaultErrorMsg, clusterId, "DescribeClusterUserConfig", DenverdinoAliyungo)
+	}
+	if debugOn() {
+		requestMap := make(map[string]interface{})
+		requestMap["Id"] = clusterId
+		addDebug("DescribeClusterUserConfig", response, requestInfo, requestMap)
+	}
+	config, _ = response.(*cs.ClusterConfig)
+	return config, nil
+}
+
 // DescribeClusterKubeConfigWithExpiration return cluster kube_config credential with expiration time.
 // It's used for kubernetes/managed_kubernetes/serverless_kubernetes.
 func (s *CsClient) DescribeClusterKubeConfigWithExpiration(clusterId string, temporaryDurationMinutes int64) (*client.DescribeClusterUserKubeconfigResponseBody, error) {
@@ -273,18 +302,15 @@ func (s *CsClient) DescribeClusterKubeConfigWithExpiration(clusterId string, tem
 	return kubeConfig.Body, nil
 }
 
-// ListAddons returns all available addons info of the cluster
-func (s *CsClient) ListAddons(clusterId string) (map[string]*client.ListAddonsResponseBodyAddons, error) {
-	result := make(map[string]*client.ListAddonsResponseBodyAddons)
+// This function returns all available addons metadata of the cluster
+func (s *CsClient) DescribeClusterAddonsMetadata(clusterId string) (map[string]*Component, error) {
+	result := make(map[string]*Component)
 
-	request := &client.ListAddonsRequest{
-		ClusterId: tea.String(clusterId),
-	}
 	var err error
-	var resp *client.ListAddonsResponse
+	var resp *client.DescribeClusterAddonsVersionResponse
 	wait := incrementalWait(3*time.Second, 3*time.Second)
 	err = resource.Retry(5*time.Minute, func() *resource.RetryError {
-		resp, err = s.client.ListAddons(request)
+		resp, err = s.client.DescribeClusterAddonsVersion(&clusterId)
 		if err != nil {
 			if NeedRetry(err) {
 				wait()
@@ -296,22 +322,26 @@ func (s *CsClient) ListAddons(clusterId string) (map[string]*client.ListAddonsRe
 	})
 
 	if err != nil {
-		return nil, WrapErrorf(err, DefaultErrorMsg, ResourceAlicloudCSKubernetesAddon, "ListAddons", err)
+		return nil, WrapErrorf(err, DefaultErrorMsg, ResourceAlicloudCSKubernetesAddon, "DescribeClusterAddonsVersion", err)
 	}
 
-	if resp == nil || resp.Body == nil || resp.Body.Addons == nil {
-		return nil, WrapErrorf(fmt.Errorf("ListAddons response body is nil"), DefaultErrorMsg, ResourceAlicloudCSKubernetesAddon, "ListAddons", err)
-	}
-
-	for _, addon := range resp.Body.Addons {
-		ca := addon
-		result[tea.StringValue(addon.Name)] = ca
+	for name, addon := range resp.Body {
+		c := &Component{}
+		bytes, err := json.Marshal(addon)
+		if err != nil {
+			continue
+		}
+		err = json.Unmarshal(bytes, c)
+		if err != nil {
+			continue
+		}
+		result[name] = c
 	}
 
 	return result, nil
 }
 
-// Deprecated This function returns the latest addon status information
+// This function returns the latest addon status information
 func (s *CsClient) DescribeCsKubernetesAddonStatus(clusterId string, addonName string) (*Component, error) {
 	result := &Component{}
 	var err error
@@ -356,6 +386,54 @@ func (s *CsClient) DescribeCsKubernetesAddonStatus(clusterId string, addonName s
 }
 
 // This function returns the latest addon instance
+func (s *CsClient) DescribeCsKubernetesAddonInstance(clusterId string, addonName string) (*Component, error) {
+	component := &Component{}
+	var err error
+	var resp *client.DescribeClusterAddonInstanceResponse
+	wait := incrementalWait(3*time.Second, 3*time.Second)
+	err = resource.Retry(5*time.Minute, func() *resource.RetryError {
+		resp, err = s.client.DescribeClusterAddonInstance(&clusterId, tea.String(addonName))
+		if err != nil {
+			if NeedRetry(err) {
+				wait()
+				return resource.RetryableError(err)
+			}
+			return resource.NonRetryableError(err)
+		}
+		return nil
+	})
+
+	if err != nil {
+		if IsExpectedErrors(err, []string{"AddonNotFound"}) {
+			err = WrapErrorf(NotFoundErr("alicloud_cs_kubernetes_addon", addonName), ResourceNotfound)
+			return component, err
+		}
+		return nil, err
+	}
+
+	// FixMe: Currently, the addon does not support the initial state and needs to be returned in a task state.
+	if resp.Body.State == nil || *resp.Body.State == "" {
+		result, err := s.DescribeCsKubernetesAddonStatus(clusterId, addonName)
+		return result, err
+	}
+
+	if resp.Body.Name != nil {
+		component.ComponentName = *resp.Body.Name
+	}
+	if resp.Body.Version != nil {
+		component.Version = *resp.Body.Version
+	}
+	if resp.Body.State != nil {
+		component.Status = *resp.Body.State
+	}
+
+	if resp.Body.Config != nil {
+		component.Config = *resp.Body.Config
+	}
+
+	return component, nil
+}
+
 func (s *CsClient) GetCsKubernetesAddonInstance(clusterId string, addonName string) (*Component, error) {
 	component := &Component{}
 	var err error
@@ -374,7 +452,7 @@ func (s *CsClient) GetCsKubernetesAddonInstance(clusterId string, addonName stri
 	})
 
 	if err != nil {
-		if IsExpectedErrors(err, []string{"AddonNotFound"}) || NotFoundError(err) {
+		if IsExpectedErrors(err, []string{"AddonNotFound"}) {
 			err = WrapErrorf(NotFoundErr("alicloud_cs_kubernetes_addon", addonName), ResourceNotfound)
 			return component, err
 		}
@@ -398,80 +476,58 @@ func (s *CsClient) GetCsKubernetesAddonInstance(clusterId string, addonName stri
 	return component, nil
 }
 
-// DescribeCsKubernetesAllAvailableAddons returns the status of all cluster addons, including both installed instances and available addons that can be installed.
+// This function returns the status of all available addons of the cluster
 func (s *CsClient) DescribeCsKubernetesAllAvailableAddons(clusterId string) (map[string]*Component, error) {
-	// ListAddons
-	availableAddons, err := s.ListAddons(clusterId)
+	availableAddons, err := s.DescribeClusterAddonsMetadata(clusterId)
 	if err != nil {
 		return nil, err
 	}
 
-	result := make(map[string]*Component)
-	for name, addonInfo := range availableAddons {
-		addon := &Component{}
-		result[name] = addon
+	queryList := make([]*string, 0)
+	for name := range availableAddons {
+		queryList = append(queryList, tea.String(name))
+	}
 
-		addon.ComponentName = name
-		addon.Required = tea.BoolValue(addonInfo.InstallByDefault)
-		addon.SupportedActions = tea.StringSliceValue(addonInfo.SupportedActions)
+	status, err := s.DescribeCsKubernetesAllAddonsStatus(clusterId, queryList)
+	if err != nil {
+		return nil, WrapErrorf(err, DefaultErrorMsg, ResourceAlicloudCSKubernetesAddon, "DescribeCsKubernetesExistedAddons", err)
+	}
 
-		// GetClusterAddonInstance
-		addonInstance, err := s.GetCsKubernetesAddonInstance(clusterId, name)
+	for name, addon := range availableAddons {
+		if _, ok := status[name]; !ok {
+			continue
+		}
+		addon.Version = status[name].Version
+		addon.CanUpgrade = status[name].CanUpgrade
+		addon.ErrMessage = status[name].ErrMessage
+		addon.Config = status[name].Config
+		if addon.Version == "" {
+			continue
+		}
+		addonInstance, err := s.DescribeCsKubernetesAddonInstance(clusterId, name)
 		if err != nil {
 			if NotFoundError(err) {
-				// Update if addon not installed
-				addon.NextVersion = tea.StringValue(addonInfo.Version)
 				continue
 			}
 			return nil, WrapErrorf(err, DefaultErrorMsg, ResourceAlicloudCSKubernetesAddon, "DescribeCsKubernetesExistedAddons", err)
 		}
-
-		// DescribeAddon
-		addonInfoDetail, err := s.DescribeAddon(clusterId, name, addonInstance.Version)
-		if err != nil {
-			if IsExpectedErrors(err, []string{"AddonNotFound"}) {
-				// If the specified version is not found, retry without version
-				addonInfoDetail, err = s.DescribeAddon(clusterId, name, "")
-				if err != nil {
-					return nil, WrapErrorf(err, DefaultErrorMsg, ResourceAlicloudCSKubernetesAddon, "DescribeAddon", err)
-				}
-			} else {
-				return nil, WrapErrorf(err, DefaultErrorMsg, ResourceAlicloudCSKubernetesAddon, "DescribeAddon", err)
-			}
-		}
-
-		if addonInfoDetail == nil || addonInfoDetail.Body == nil {
-			return nil, WrapErrorf(fmt.Errorf("DescribeAddon response body is nil"), DefaultErrorMsg, ResourceAlicloudCSKubernetesAddon, "DescribeAddon", err)
-		}
-
-		addon.NextVersion = getNextVersion(addonInfoDetail)
-		// If retried without version, use the response version as next_version only if it's newer
-		if addon.NextVersion == "" && addonInfoDetail.Body.Version != nil {
-			targetVersion := tea.StringValue(addonInfoDetail.Body.Version)
-			if cmp, err := versionCompare(addonInstance.Version, targetVersion); err == nil && cmp == 1 {
-				addon.NextVersion = targetVersion
-			}
-		}
-
-		// Update if addon installed
-		addon.Version = addonInstance.Version
 		addon.Config = addonInstance.Config
 		addon.Status = addonInstance.Status
 	}
 
-	return result, nil
+	return availableAddons, nil
 }
 
-func (s *CsClient) DescribeAddon(clusterId, name, version string) (*client.DescribeAddonResponse, error) {
+// This function returns the latest multiple addons status information
+func (s *CsClient) DescribeCsKubernetesAllAddonsStatus(clusterId string, addons []*string) (map[string]*Component, error) {
+	addonsStatus := make(map[string]*Component)
 	var err error
-	req := &client.DescribeAddonRequest{
-		ClusterId: tea.String(clusterId),
-		Version:   tea.String(version),
-	}
-	var resp *client.DescribeAddonResponse
+	var resp *client.DescribeClusterAddonsUpgradeStatusResponse
 	wait := incrementalWait(3*time.Second, 3*time.Second)
 	err = resource.Retry(5*time.Minute, func() *resource.RetryError {
-		resp, err = s.client.DescribeAddon(&name, req)
+		resp, err = s.client.DescribeClusterAddonsUpgradeStatus(&clusterId, &client.DescribeClusterAddonsUpgradeStatusRequest{
+			ComponentIds: addons,
+		})
 		if err != nil {
 			if NeedRetry(err) {
 				wait()
@@ -482,7 +538,25 @@ func (s *CsClient) DescribeAddon(clusterId, name, version string) (*client.Descr
 		return nil
 	})
 
-	return resp, err
+	if err != nil {
+		return nil, WrapErrorf(err, DefaultErrorMsg, ResourceAlicloudCSKubernetesAddon, "DescribeClusterAddonsUpgradeStatus", err)
+	}
+
+	for name, status := range resp.Body {
+		c := &Component{}
+		addonInfo := status.(map[string]interface{})["addon_info"]
+		tasks := status.(map[string]interface{})["tasks"]
+		c.Version = addonInfo.(map[string]interface{})["version"].(string)
+		c.CanUpgrade = status.(map[string]interface{})["can_upgrade"].(bool)
+		c.Status = tasks.(map[string]interface{})["status"].(string)
+		if message, ok := tasks.(map[string]interface{})["message"]; ok {
+			c.ErrMessage = message.(string)
+		}
+
+		addonsStatus[name] = c
+	}
+
+	return addonsStatus, nil
 }
 
 func (s *CsClient) DescribeCsKubernetesAddon(id string) (*Component, error) {
@@ -493,7 +567,7 @@ func (s *CsClient) DescribeCsKubernetesAddon(id string) (*Component, error) {
 	clusterId := parts[0]
 	addonName := parts[1]
 
-	addonInstance, err := s.GetCsKubernetesAddonInstance(clusterId, addonName)
+	addonInstance, err := s.DescribeCsKubernetesAddonInstance(clusterId, addonName)
 	if err != nil {
 		if IsExpectedErrors(err, []string{"AddonNotFound", "ErrorClusterNotFound"}) || NotFoundError(err) {
 			return nil, WrapErrorf(NotFoundErr("alicloud_cs_kubernetes_addon", id), ResourceNotfound)
@@ -501,83 +575,27 @@ func (s *CsClient) DescribeCsKubernetesAddon(id string) (*Component, error) {
 		return nil, err
 	}
 
-	addonInfo, err := s.DescribeAddon(clusterId, addonName, addonInstance.Version)
+	addonsMetadata, err := s.DescribeClusterAddonsMetadata(clusterId)
 	if err != nil {
-		if IsExpectedErrors(err, []string{"AddonNotFound"}) {
-			// If the specified version is not found, retry without version
-			addonInfo, err = s.DescribeAddon(clusterId, addonName, "")
-			if err != nil {
-				return nil, err
-			}
-		} else {
-			return nil, err
-		}
+		return nil, err
 	}
 
-	if addonInfo == nil || addonInfo.Body == nil {
-		return nil, WrapErrorf(fmt.Errorf("DescribeAddon response body is nil"), DefaultErrorMsg, ResourceAlicloudCSKubernetesAddon, "DescribeAddon", err)
-	}
-
-	addonInstance.Required = tea.BoolValue(addonInfo.Body.InstallByDefault)
-	// compat for old behavior: if the addon cannot be upgraded, use the current version as the next version
-	addonInstance.NextVersion = addonInstance.Version
-	if nextVersion := getNextVersion(addonInfo); nextVersion != "" {
-		addonInstance.NextVersion = nextVersion
-	}
-	// If retried without version, use the response version as next_version only if it's newer
-	if addonInstance.NextVersion == addonInstance.Version && addonInfo.Body.Version != nil {
-		targetVersion := tea.StringValue(addonInfo.Body.Version)
-		if cmp, err := versionCompare(addonInstance.Version, targetVersion); err == nil && cmp == 1 {
-			addonInstance.NextVersion = targetVersion
-		}
-	}
-	addonInstance.CanUpgrade = addonInstance.Version != addonInstance.NextVersion
-	addonInstance.SupportedActions = tea.StringSliceValue(addonInfo.Body.SupportedActions)
-
-	return addonInstance, nil
-}
-
-func getNextVersion(addonInfo *client.DescribeAddonResponse) string {
-	newerVersions := addonInfo.Body.NewerVersions
-	for _, version := range newerVersions {
-		if tea.BoolValue(version.Upgradable) {
-			return *version.Version
-		}
-	}
-
-	return ""
-}
-
-// versionCompare compares two semantic versions using github.com/Masterminds/semver.
-// Supports formats: "1.2.3", "v1.2.3", "1.2.3-aliyun.1", "v1.31.0-apsara.6.11.6.ad796663", etc.
-// Returns:
-//
-//	 1  if newVersion > oldVersion
-//	 0  if newVersion == oldVersion
-//	-1  if newVersion < oldVersion
-//
-// Example: versionCompare("1.20.11-aliyun.1", "1.22.3-aliyun.1") returns 1
-func versionCompare(oldVersion, newVersion string) (int, error) {
-	if oldVersion == "" || newVersion == "" {
-		if oldVersion == "" && newVersion == "" {
-			return 0, nil
-		}
-		if oldVersion == "" {
-			return 1, nil
-		}
-		return -1, nil
-	}
-
-	oldSemver, err := semver.NewVersion(oldVersion)
+	addonStatus, err := s.DescribeCsKubernetesAddonStatus(clusterId, addonName)
 	if err != nil {
-		return -2, fmt.Errorf("failed to parse version %q: %v", oldVersion, err)
-	}
-	newSemver, err := semver.NewVersion(newVersion)
-	if err != nil {
-		return -2, fmt.Errorf("failed to parse version %q: %v", newVersion, err)
+		return nil, err
 	}
 
-	return newSemver.Compare(oldSemver), nil
+	// Update some fields
+	if addon, existed := addonsMetadata[addonName]; existed {
+		addon.Version = addonStatus.Version
+		addon.Status = addonStatus.Status
+		addon.CanUpgrade = addonStatus.CanUpgrade
+		addon.ErrMessage = addonStatus.ErrMessage
+		addon.Config = addonInstance.Config
+		return addon, nil
+	}
+
+	return nil, WrapErrorf(NotFoundErr("alicloud_cs_kubernetes_addon", id), ResourceNotfound)
 }
 
 func (s *CsClient) CsKubernetesAddonTaskRefreshFunc(clusterId string, addonName string, failStates []string) resource.StateRefreshFunc {
@@ -600,7 +618,7 @@ func (s *CsClient) CsKubernetesAddonTaskRefreshFunc(clusterId string, addonName 
 
 func (s *CsClient) CsKubernetesAddonStateRefreshFunc(clusterId string, addonName string, failStates []string) resource.StateRefreshFunc {
 	return func() (interface{}, string, error) {
-		object, err := s.GetCsKubernetesAddonInstance(clusterId, addonName)
+		object, err := s.DescribeCsKubernetesAddonInstance(clusterId, addonName)
 		if err != nil {
 			if NotFoundError(err) {
 				// Set this to nil as if we didn't find anything.
@@ -615,6 +633,31 @@ func (s *CsClient) CsKubernetesAddonStateRefreshFunc(clusterId string, addonName
 		}
 		return object, object.Status, nil
 	}
+}
+
+func (s *CsClient) CsKubernetesAddonExistRefreshFunc(clusterId string, addonName string) resource.StateRefreshFunc {
+	return func() (interface{}, string, error) {
+		object, err := s.DescribeCsKubernetesAddonInstance(clusterId, addonName)
+		if err != nil {
+			if NotFoundError(err) {
+				// Set this to nil as if we didn't find anything.
+				return object, "deleted", nil
+			}
+			return nil, "", WrapError(err)
+		}
+
+		return object, object.Status, nil
+	}
+}
+func (s *CsClient) DescribeCsAutoscalingConfig(id string) (*client.CreateAutoscalingConfigRequest, error) {
+	request := &client.CreateAutoscalingConfigRequest{
+		CoolDownDuration:        tea.String("10m"),
+		UnneededDuration:        tea.String("10m"),
+		UtilizationThreshold:    tea.String("0.5"),
+		GpuUtilizationThreshold: tea.String("0.5"),
+		ScanInterval:            tea.String("30s"),
+	}
+	return request, nil
 }
 
 func (s *CsClient) installAddon(d *schema.ResourceData) error {
@@ -635,11 +678,10 @@ func (s *CsClient) installAddon(d *schema.ResourceData) error {
 		Body: body,
 	}
 
-	var resp *client.InstallClusterAddonsResponse
 	var err error
 	wait := incrementalWait(3*time.Second, 3*time.Second)
 	err = resource.Retry(5*time.Minute, func() *resource.RetryError {
-		resp, err = s.client.InstallClusterAddons(&clusterId, creationArgs)
+		_, err = s.client.InstallClusterAddons(&clusterId, creationArgs)
 		if err != nil {
 			if NeedRetry(err) {
 				wait()
@@ -652,16 +694,6 @@ func (s *CsClient) installAddon(d *schema.ResourceData) error {
 
 	if err != nil {
 		return WrapErrorf(err, DefaultErrorMsg, ResourceAlicloudCSKubernetesAddon, "installAddon", err)
-	}
-
-	if resp == nil || resp.Body == nil || tea.StringValue(resp.Body.TaskId) == "" {
-		return WrapErrorf(fmt.Errorf("failed to get taskId"), DefaultErrorMsg, ResourceAlicloudCSKubernetesAddon, "installAddon", err)
-	}
-
-	taskId := tea.StringValue(resp.Body.TaskId)
-	stateConf := BuildStateConf([]string{}, []string{"success"}, d.Timeout(schema.TimeoutCreate), 10*time.Second, s.DescribeTaskRefreshFunc(d, taskId, []string{"fail", "failed"}))
-	if jobDetail, err := stateConf.WaitForState(); err != nil {
-		return WrapErrorf(err, ResponseCodeMsg, d.Id(), "InstallClusterAddons", jobDetail)
 	}
 
 	return nil
@@ -691,11 +723,9 @@ func (s *CsClient) upgradeAddon(d *schema.ResourceData, updateVersion, updateCon
 		Body: body,
 	}
 
-	var resp *client.UpgradeClusterAddonsResponse
-	var err error
 	wait := incrementalWait(3*time.Second, 3*time.Second)
-	err = resource.Retry(5*time.Minute, func() *resource.RetryError {
-		resp, err = s.client.UpgradeClusterAddons(&clusterId, upgradeArgs)
+	err := resource.Retry(5*time.Minute, func() *resource.RetryError {
+		_, err := s.client.UpgradeClusterAddons(&clusterId, upgradeArgs)
 		if err != nil {
 			if NeedRetry(err) {
 				wait()
@@ -708,16 +738,6 @@ func (s *CsClient) upgradeAddon(d *schema.ResourceData, updateVersion, updateCon
 
 	if err != nil {
 		return WrapErrorf(err, DefaultErrorMsg, ResourceAlicloudCSKubernetesAddon, "upgradeAddon", err)
-	}
-
-	if resp == nil || resp.Body == nil || tea.StringValue(resp.Body.TaskId) == "" {
-		return WrapErrorf(fmt.Errorf("failed to get taskId"), DefaultErrorMsg, ResourceAlicloudCSKubernetesAddon, "upgradeAddon", err)
-	}
-
-	taskId := tea.StringValue(resp.Body.TaskId)
-	stateConf := BuildStateConf([]string{}, []string{"success"}, d.Timeout(schema.TimeoutUpdate), 10*time.Second, s.DescribeTaskRefreshFunc(d, taskId, []string{"fail", "failed"}))
-	if jobDetail, err := stateConf.WaitForState(); err != nil {
-		return WrapErrorf(err, ResponseCodeMsg, d.Id(), "UpgradeClusterAddons", jobDetail)
 	}
 
 	return nil
@@ -743,10 +763,9 @@ func (s *CsClient) uninstallAddon(d *schema.ResourceData) error {
 		Addons: body,
 	}
 
-	var resp *client.UnInstallClusterAddonsResponse
 	wait := incrementalWait(3*time.Second, 3*time.Second)
 	err = resource.Retry(5*time.Minute, func() *resource.RetryError {
-		resp, err = s.client.UnInstallClusterAddons(&clusterId, uninstallArgs)
+		_, err = s.client.UnInstallClusterAddons(&clusterId, uninstallArgs)
 		if err != nil {
 			if NeedRetry(err) {
 				wait()
@@ -759,16 +778,6 @@ func (s *CsClient) uninstallAddon(d *schema.ResourceData) error {
 
 	if err != nil {
 		return WrapErrorf(err, DefaultErrorMsg, ResourceAlicloudCSKubernetesAddon, "uninstallAddon", err)
-	}
-
-	if resp == nil || resp.Body == nil || tea.StringValue(resp.Body.TaskId) == "" {
-		return WrapErrorf(fmt.Errorf("failed to get taskId"), DefaultErrorMsg, ResourceAlicloudCSKubernetesAddon, "uninstallAddon", err)
-	}
-
-	taskId := tea.StringValue(resp.Body.TaskId)
-	stateConf := BuildStateConf([]string{}, []string{"success"}, d.Timeout(schema.TimeoutDelete), 10*time.Second, s.DescribeTaskRefreshFunc(d, taskId, []string{"fail", "failed"}))
-	if jobDetail, err := stateConf.WaitForState(); err != nil {
-		return WrapErrorf(err, ResponseCodeMsg, d.Id(), "UnInstallClusterAddons", jobDetail)
 	}
 
 	return nil
@@ -800,26 +809,32 @@ func (s *CsClient) updateAddonConfig(d *schema.ResourceData) error {
 		return WrapErrorf(err, DefaultErrorMsg, ResourceAlicloudCSKubernetesAddon, "upgradeAddonConfig", err)
 	}
 
-	stateConf := BuildStateConf([]string{}, []string{"Success"}, d.Timeout(schema.TimeoutUpdate), 10*time.Second, s.CsKubernetesAddonTaskRefreshFunc(clusterId, ComponentName, []string{"Failed"}))
-	if _, err := stateConf.WaitForState(); err != nil {
-		status, _ := s.DescribeCsKubernetesAddonStatus(clusterId, ComponentName)
-		if status != nil && status.Error != nil {
-			return WrapErrorf(err, DefaultErrorMsg, ResourceAlicloudCSKubernetesAddon, "WaitForSuccessAfterUpdate", status.Error)
-		}
-		return WrapErrorf(err, DefaultErrorMsg, ResourceAlicloudCSKubernetesAddon, "WaitForSuccessAfterUpdate", d.Id())
-	}
-
 	return nil
 }
 
-// DescribeCsKubernetesAddonMetadata returns metadata of an addon with name and version
+// This function returns the status of all available addons of the cluster
 func (s *CsClient) DescribeCsKubernetesAddonMetadata(clusterId string, name string, version string) (*Component, error) {
-	resp, err := s.DescribeAddon(clusterId, name, version)
+	var err error
+	req := &client.DescribeClusterAddonMetadataRequest{
+		Version: tea.String(version),
+	}
+	var resp *client.DescribeClusterAddonMetadataResponse
+	wait := incrementalWait(3*time.Second, 3*time.Second)
+	err = resource.Retry(5*time.Minute, func() *resource.RetryError {
+		resp, err = s.client.DescribeClusterAddonMetadata(&clusterId, &name, req)
+		if err != nil {
+			if NeedRetry(err) {
+				wait()
+				return resource.RetryableError(err)
+			}
+			return resource.NonRetryableError(err)
+		}
+		return nil
+	})
 
 	if err != nil {
 		return nil, WrapErrorf(err, DefaultErrorMsg, ResourceAlicloudCSKubernetesAddon, "DescribeCsKubernetesExistedAddons", err)
 	}
-
 	result := &Component{
 		ComponentName: *resp.Body.Name,
 		Version:       *resp.Body.Version,
@@ -867,6 +882,31 @@ func (s *CsService) DescribeCsKubernetesNodePool(id string) (nodePool *cs.NodePo
 	return
 }
 
+func (s *CsService) WaitForCsKubernetes(id string, status Status, timeout int) error {
+	deadline := time.Now().Add(time.Duration(timeout) * time.Second)
+
+	for {
+		object, err := s.DescribeCsKubernetes(id)
+		if err != nil {
+			if NotFoundError(err) {
+				if status == Deleted {
+					return nil
+				}
+			} else {
+				return WrapError(err)
+			}
+		}
+		if object.ClusterId == id && status != Deleted {
+			return nil
+		}
+		if time.Now().After(deadline) {
+			return WrapErrorf(err, WaitTimeoutMsg, id, GetFunc(1), timeout, object.ClusterId, id, ProviderERROR)
+		}
+		time.Sleep(DefaultIntervalShort * time.Second)
+
+	}
+}
+
 func (s *CsService) DescribeCsManagedKubernetes(id string) (cluster *cs.KubernetesClusterDetail, err error) {
 	var requestInfo *cs.Client
 	invoker := NewInvoker()
@@ -898,6 +938,31 @@ func (s *CsService) DescribeCsManagedKubernetes(id string) (cluster *cs.Kubernet
 
 }
 
+func (s *CsService) WaitForCSManagedKubernetes(id string, status Status, timeout int) error {
+	deadline := time.Now().Add(time.Duration(timeout) * time.Second)
+
+	for {
+		object, err := s.DescribeCsManagedKubernetes(id)
+		if err != nil {
+			if NotFoundError(err) {
+				if status == Deleted {
+					return nil
+				}
+			} else {
+				return WrapError(err)
+			}
+		}
+		if object.ClusterId == id && status != Deleted {
+			return nil
+		}
+		if time.Now().After(deadline) {
+			return WrapErrorf(err, WaitTimeoutMsg, id, GetFunc(1), timeout, object.ClusterId, id, ProviderERROR)
+		}
+		time.Sleep(DefaultIntervalShort * time.Second)
+
+	}
+}
+
 func (s *CsService) CsKubernetesInstanceStateRefreshFunc(id string, failStates []string) resource.StateRefreshFunc {
 	return func() (interface{}, string, error) {
 		object, err := s.DescribeCsKubernetes(id)
@@ -921,6 +986,26 @@ func (s *CsService) CsKubernetesInstanceStateRefreshFunc(id string, failStates [
 func (s *CsService) CsKubernetesNodePoolStateRefreshFunc(id string, failStates []string) resource.StateRefreshFunc {
 	return func() (interface{}, string, error) {
 		object, err := s.DescribeCsKubernetesNodePool(id)
+		if err != nil {
+			if NotFoundError(err) {
+				// Set this to nil as if we didn't find anything.
+				return nil, "", nil
+			}
+			return nil, "", WrapError(err)
+		}
+
+		for _, failState := range failStates {
+			if string(object.State) == failState {
+				return object, string(object.State), WrapError(Error(FailedToReachTargetStatus, string(object.State)))
+			}
+		}
+		return object, string(object.State), nil
+	}
+}
+
+func (s *CsService) CsManagedKubernetesInstanceStateRefreshFunc(id string, failStates []string) resource.StateRefreshFunc {
+	return func() (interface{}, string, error) {
+		object, err := s.DescribeCsManagedKubernetes(id)
 		if err != nil {
 			if NotFoundError(err) {
 				// Set this to nil as if we didn't find anything.
@@ -988,6 +1073,31 @@ func (s *CsService) DescribeCsServerlessKubernetes(id string) (*cs.ServerlessClu
 	}
 	return cluster, nil
 
+}
+
+func (s *CsService) WaitForCSServerlessKubernetes(id string, status Status, timeout int) error {
+	deadline := time.Now().Add(time.Duration(timeout) * time.Second)
+
+	for {
+		object, err := s.DescribeCsServerlessKubernetes(id)
+		if err != nil {
+			if NotFoundError(err) {
+				if status == Deleted {
+					return nil
+				}
+			} else {
+				return WrapError(err)
+			}
+		}
+		if object.ClusterId == id && status != Deleted {
+			return nil
+		}
+		if time.Now().After(deadline) {
+			return WrapErrorf(err, WaitTimeoutMsg, id, GetFunc(1), timeout, object.ClusterId, id, ProviderERROR)
+		}
+		time.Sleep(DefaultIntervalShort * time.Second)
+
+	}
 }
 
 func (s *CsService) tagsToMap(tags []cs.Tag) map[string]string {
@@ -1155,6 +1265,15 @@ func GetKubernetesNetworkName(cluster *cs.KubernetesClusterDetail) (network stri
 		}
 	}
 	return "", fmt.Errorf("no network addon found")
+}
+
+func (s *CsClient) DescribeUserPermission(uid string) ([]*client.DescribeUserPermissionResponseBody, error) {
+	body, err := s.client.DescribeUserPermission(tea.String(uid))
+	if err != nil {
+		return nil, err
+	}
+
+	return body.Body, err
 }
 
 func setCerts(d *schema.ResourceData, meta interface{}, skipSetCertificateAuthority bool) error {

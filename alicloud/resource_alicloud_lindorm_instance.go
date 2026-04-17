@@ -136,7 +136,7 @@ func resourceAliCloudLindormInstance() *schema.Resource {
 				Type:         schema.TypeInt,
 				Optional:     true,
 				Computed:     true,
-				ValidateFunc: IntBetween(0, 60),
+				ValidateFunc: IntAtLeast(2),
 			},
 			"search_engine_specification": {
 				Type:         schema.TypeString,
@@ -148,7 +148,7 @@ func resourceAliCloudLindormInstance() *schema.Resource {
 				Type:         schema.TypeInt,
 				Optional:     true,
 				Computed:     true,
-				ValidateFunc: IntBetween(0, 400),
+				ValidateFunc: IntAtLeast(2),
 			},
 			"table_engine_specification": {
 				Type:     schema.TypeString,
@@ -159,7 +159,7 @@ func resourceAliCloudLindormInstance() *schema.Resource {
 				Type:         schema.TypeInt,
 				Optional:     true,
 				Computed:     true,
-				ValidateFunc: IntBetween(0, 32),
+				ValidateFunc: IntAtLeast(2),
 			},
 			"time_serires_engine_specification": {
 				Type:          schema.TypeString,

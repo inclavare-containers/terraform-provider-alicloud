@@ -55,34 +55,29 @@ resource "alicloud_vpc_ipam_ipam_pool" "default" {
 }
 ```
 
-
 📚 Need more examples? [VIEW MORE EXAMPLES](https://api.aliyun.com/terraform?activeTab=sample&source=Sample&sourcePath=OfficialSample:alicloud_vpc_ipam_ipam_pool&spm=docs.r.vpc_ipam_ipam_pool.example&intl_lang=EN_US)
 
 ## Argument Reference
 
 The following arguments are supported:
 * `allocation_default_cidr_mask` - (Optional, Int) The default network mask assigned by the IPAM address pool.
-IPv4 network mask value range: 0 to 32 bits, and the IPv6 network mask value range is 0 to 128 bits.
-* `allocation_max_cidr_mask` - (Optional, Computed, Int) The maximum network mask assigned by the IPAM address pool.
-IPv4 network mask value range: 0 to 32 bits, and the IPv6 network mask value range is 0 to 128 bits.
+IPv4 network mask value range: **0 to 32** bits.
+* `allocation_max_cidr_mask` - (Optional, Int) The maximum network mask assigned by the IPAM address pool.
+IPv4 network mask value range: **0 to 32** bits.
 * `allocation_min_cidr_mask` - (Optional, Int) The minimum Network mask assigned by the IPAM address pool.
-IPv4 network mask value range: 0 to 32 bits, and the IPv6 network mask value range is 0 to 128 bits.
+IPv4 network mask value range: **0 to 32** bits.
 * `auto_import` - (Optional) Whether the automatic import function is enabled for the address pool.
 * `clear_allocation_default_cidr_mask` - (Optional) Whether to clear the default network mask of the IPAM address pool. Value:
   - `true`: Yes.
   - `false`: No.
-
--> **NOTE:** This parameter only takes effect when other resource properties are also modified. Changing this parameter alone will not trigger a resource update.
-
-* `ip_version` - (Optional, ForceNew, Computed) The IP protocol version. Values: IPv4、IPv6.
+* `ip_version` - (Optional, ForceNew) The IP protocol version. Currently, only `IPv4` is supported * *.
 * `ipam_pool_description` - (Optional) The description of the IPAM address pool.
 It must be 2 to 256 characters in length and must start with an English letter or a Chinese character, but cannot start with 'http:// 'or 'https. If it is not filled in, it is empty. The default value is empty.
-* `ipam_pool_name` - (Optional, Computed) The name of the resource.
-* `ipam_scope_id` - (Required, ForceNew) The ID of the IPAM scope.
-* `ipv6_isp` - (Optional, ForceNew, Available since v1.272.0) The type of the IPv6 CIDR block of the VPC.
+* `ipam_pool_name` - (Optional) The name of the resource.
+* `ipam_scope_id` - (Required, ForceNew) Ipam scope id.
 * `pool_region_id` - (Optional, ForceNew) The effective region of the IPAM address pool.
 * `resource_group_id` - (Optional, Computed, Available since v1.242.0) The ID of the resource group.
-* `source_ipam_pool_id` - (Optional, ForceNew, Computed) The instance ID of the source IPAM address pool.
+* `source_ipam_pool_id` - (Optional, ForceNew) The instance ID of the source IPAM address pool.
 
 -> **NOTE:**  If this parameter is not entered, the created address pool is the parent address pool.
 
@@ -91,7 +86,7 @@ It must be 2 to 256 characters in length and must start with an English letter o
 ## Attributes Reference
 
 The following attributes are exported:
-* `id` - The ID of the resource supplied above. 
+* `id` - The ID of the resource supplied above.
 * `create_time` - The creation time of the resource.
 * `region_id` - The ID of the IPAM hosting region.
 * `status` - The status of the resource.
@@ -108,5 +103,5 @@ The `timeouts` block allows you to specify [timeouts](https://developer.hashicor
 Vpc Ipam Ipam Pool can be imported using the id, e.g.
 
 ```shell
-$ terraform import alicloud_vpc_ipam_ipam_pool.example <ipam_pool_id>
+$ terraform import alicloud_vpc_ipam_ipam_pool.example <id>
 ```

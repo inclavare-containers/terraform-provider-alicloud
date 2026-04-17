@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-	"strconv"
 	"time"
 
 	"github.com/aliyun/terraform-provider-alicloud/alicloud/connectivity"
@@ -163,13 +162,7 @@ func resourceAliCloudConfigAggregatorRead(d *schema.ResourceData, meta interface
 
 	d.Set("aggregator_name", objectRaw["AggregatorName"])
 	d.Set("aggregator_type", objectRaw["AggregatorType"])
-
-	createTime, err := strconv.ParseInt(objectRaw["AggregatorCreateTimestamp"].(json.Number).String(), 10, 64)
-	if err != nil {
-		return WrapError(err)
-	}
-	d.Set("create_time", createTime)
-
+	d.Set("create_time", formatInt(objectRaw["AggregatorCreateTimestamp"]))
 	d.Set("description", objectRaw["Description"])
 	d.Set("folder_id", objectRaw["FolderId"])
 	d.Set("status", convertConfigAggregatorAggregatorAggregatorStatusResponse(objectRaw["AggregatorStatus"]))

@@ -21,7 +21,7 @@ For information about VPN Gateway Vpn Attachment and how to use it, see [What is
 Basic Usage
 
 <div style="display: block;margin-bottom: 40px;"><div class="oics-button" style="float: right;position: absolute;margin-bottom: 10px;">
-  <a href="https://api.aliyun.com/terraform?resource=alicloud_vpn_gateway_vpn_attachment&exampleId=e9116f53-c834-8535-0a94-c91e46fc98b7db567c3b&activeTab=example&spm=docs.r.vpn_gateway_vpn_attachment.0.e9116f53c8&intl_lang=EN_US" target="_blank">
+  <a href="https://api.aliyun.com/terraform?resource=alicloud_vpn_gateway_vpn_attachment&exampleId=9a5be41b-822c-c907-2cbc-eec5ba1487a364b8dd07&activeTab=example&spm=docs.r.vpn_gateway_vpn_attachment.0.9a5be41b82&intl_lang=EN_US" target="_blank">
     <img alt="Open in AliCloud" src="https://img.alicdn.com/imgextra/i1/O1CN01hjjqXv1uYUlY56FyX_!!6000000006049-55-tps-254-36.svg" style="max-height: 44px; max-width: 100%;">
   </a>
 </div></div>
@@ -30,68 +30,53 @@ Basic Usage
 variable "name" {
   default = "tf-example"
 }
-
 resource "alicloud_vpn_customer_gateway" "default" {
   customer_gateway_name = var.name
   ip_address            = "42.104.22.210"
   asn                   = "45014"
   description           = var.name
 }
-
 resource "alicloud_vpn_gateway_vpn_attachment" "default" {
-  vpn_attachment_name = var.name
+  customer_gateway_id = alicloud_vpn_customer_gateway.default.id
   network_type        = "public"
   local_subnet        = "0.0.0.0/0"
   remote_subnet       = "0.0.0.0/0"
   effect_immediately  = false
-
-  tunnel_options_specification {
-    tunnel_index         = 1
-    customer_gateway_id  = alicloud_vpn_customer_gateway.default.id
-    enable_dpd           = true
-    enable_nat_traversal = true
-    tunnel_ike_config {
-      ike_version  = "ikev2"
-      ike_mode     = "main"
-      ike_auth_alg = "sha256"
-      ike_enc_alg  = "aes"
-      ike_pfs      = "group2"
-      ike_lifetime = 86400
-      psk          = "tf-example-psk1"
-      local_id     = "42.104.22.210"
-      remote_id    = "42.104.22.210"
-    }
-    tunnel_ipsec_config {
-      ipsec_auth_alg = "sha256"
-      ipsec_enc_alg  = "aes"
-      ipsec_pfs      = "group2"
-      ipsec_lifetime = 86400
-    }
+  ike_config {
+    ike_auth_alg = "md5"
+    ike_enc_alg  = "des"
+    ike_version  = "ikev2"
+    ike_mode     = "main"
+    ike_lifetime = 86400
+    psk          = "tf-testvpn2"
+    ike_pfs      = "group1"
+    remote_id    = "testbob2"
+    local_id     = "testalice2"
   }
-
-  tunnel_options_specification {
-    tunnel_index         = 2
-    customer_gateway_id  = alicloud_vpn_customer_gateway.default.id
-    enable_dpd           = true
-    enable_nat_traversal = true
-    tunnel_ike_config {
-      ike_version  = "ikev2"
-      ike_mode     = "main"
-      ike_auth_alg = "sha256"
-      ike_enc_alg  = "aes"
-      ike_pfs      = "group2"
-      ike_lifetime = 86400
-      psk          = "tf-example-psk2"
-      local_id     = "42.104.22.210"
-      remote_id    = "42.104.22.210"
-    }
-    tunnel_ipsec_config {
-      ipsec_auth_alg = "sha256"
-      ipsec_enc_alg  = "aes"
-      ipsec_pfs      = "group2"
-      ipsec_lifetime = 86400
-    }
+  ipsec_config {
+    ipsec_pfs      = "group5"
+    ipsec_enc_alg  = "des"
+    ipsec_auth_alg = "md5"
+    ipsec_lifetime = 86400
   }
+  bgp_config {
+    enable       = true
+    local_asn    = 45014
+    tunnel_cidr  = "169.254.11.0/30"
+    local_bgp_ip = "169.254.11.1"
+  }
+  health_check_config {
+    enable   = true
+    sip      = "192.168.1.1"
+    dip      = "10.0.0.1"
+    interval = 10
+    retry    = 10
+    policy   = "revoke_route"
+
+  }
+  enable_dpd           = true
+  enable_nat_traversal = true
+  vpn_attachment_name  = var.name
 }
 ```
 
@@ -299,7 +284,6 @@ The tunnel_options_specification supports the following:
 * `enable_nat_traversal` - (Optional, Computed, Available since v1.246.0) Whether the NAT crossing function is enabled for the tunnel. Value:
   - `true` (default): Enables the NAT Traversal function. When enabled, the IKE negotiation process deletes the verification process of the UDP port number and realizes the discovery function of the NAT gateway device in the tunnel.
   - `false`: does not enable the NAT Traversal function.
-* `role` - (Optional, Computed, Available since v1.276.0) The role of the tunnel. Valid values: `master`, `slave`. The role is determined by the order in which the tunnel is added to the IPsec-VPN connection.
 * `tunnel_bgp_config` - (Optional, Computed, List, Available since v1.246.0) Add the BGP configuration for the tunnel.
 
 -> **NOTE:**  After you enable the BGP function for IPsec connections (that is, specify `EnableTunnelsBgp` as `true`), you must configure this parameter.
@@ -364,22 +348,23 @@ Values: `disabled`, `group1`, `group2`, `group5`, `group14`.
 
 The following attributes are exported:
 * `id` - The ID of the resource supplied above.
-* `bgp_config` - Bgp configuration information.
-    * `status` - The negotiation status of Bgp.
+* `bgp_config` - Bgp configuration information.-tunnel mode.
+  * `status` - The negotiation status of Bgp.
 * `create_time` - The creation time of the resource
 * `health_check_config` - This parameter is supported if you create an vpn attachment in single-tunnel mode.
-    * `status` - health check status
+  * `status` - health check status
 * `status` - The status of the resource
-* `tunnel_options_specification` - Configure the tunnel. When creating a vpn attachment in dual-tunnel mode, you must add both tunnels for the vpn attachment to ensure that the vpn attachment has link redundancy. Only two tunnels can be added to a vpn attachment.
-    * `internet_ip` - The local internet IP in Tunnel.
-    * `state` - The state of Tunnel.
-    * `status` - The negotiation status of Tunnel.
-    * `tunnel_bgp_config` - Add the BGP configuration for the tunnel.
-        * `bgp_status` - BGP status.
-        * `peer_asn` - Peer asn.
-        * `peer_bgp_ip` - Peer bgp ip.
-    * `tunnel_id` - The tunnel ID of IPsec-VPN connection.
-    * `zone_no` - The zoneNo of tunnel.
+* `tunnel_options_specification` - Configure the tunnel._options_specification` array when you create a vpn attachment in dual-tunnel mode.-tunnel mode, you must add both tunnels for the vpn attachment to ensure that the vpn attachment has link redundancy. Only two tunnels can be added to a vpn attachment.
+  * `internet_ip` - The local internet IP in Tunnel.
+  * `role` - The role of Tunnel.
+  * `state` - The state of Tunnel.
+  * `status` - The negotiation status of Tunnel. 
+  * `tunnel_bgp_config` - Add the BGP configuration for the tunnel.
+    * `bgp_status` - BGP status.
+    * `peer_asn` - Peer asn.
+    * `peer_bgp_ip` - Peer bgp ip.
+  * `tunnel_id` - The tunnel ID of IPsec-VPN connection.
+  * `zone_no` - The zoneNo of tunnel.
 
 ## Timeouts
 

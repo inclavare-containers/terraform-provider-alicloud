@@ -45,7 +45,6 @@ resource "alicloud_vpc_ipam_ipam" "default" {
 }
 ```
 
-
 📚 Need more examples? [VIEW MORE EXAMPLES](https://api.aliyun.com/terraform?activeTab=sample&source=Sample&sourcePath=OfficialSample:alicloud_vpc_ipam_ipam&spm=docs.r.vpc_ipam_ipam.example&intl_lang=EN_US)
 
 ## Argument Reference
@@ -54,17 +53,16 @@ The following arguments are supported:
 * `ipam_description` - (Optional) The description of IPAM.
 It must be 2 to 256 characters in length and must start with an uppercase letter or a Chinese character, but cannot start with 'http: // 'or 'https. If the description is not filled in, it is blank. The default value is blank.
 * `ipam_name` - (Optional) The name of the resource.
-* `operating_region_list` - (Required, List) List of IPAM effective regions.
+* `operating_region_list` - (Required, Set) List of IPAM effective regions.
 * `resource_group_id` - (Optional, Computed) The ID of the resource group.
 * `tags` - (Optional, Map) The tag of the resource.
 
 ## Attributes Reference
 
 The following attributes are exported:
-* `id` - The ID of the resource supplied above. 
+* `id` - The ID of the resource supplied above.
 * `create_time` - The creation time of the resource.
 * `private_default_scope_id` - After an IPAM is created, the scope of the private network IPAM created by the system by default.
-* `public_default_scope_id` - After an IPAM is created, the public network IPAM is created by default.
 * `region_id` - The region ID of the resource.
 * `status` - The status of the resource.
 
@@ -80,5 +78,5 @@ The `timeouts` block allows you to specify [timeouts](https://developer.hashicor
 Vpc Ipam Ipam can be imported using the id, e.g.
 
 ```shell
-$ terraform import alicloud_vpc_ipam_ipam.example <ipam_id>
+$ terraform import alicloud_vpc_ipam_ipam.example <id>
 ```

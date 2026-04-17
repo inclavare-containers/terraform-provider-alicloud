@@ -77,13 +77,12 @@ The following arguments are supported:
 
 * `plan_name` - (Optional) Package name.  
 
-For China site accounts:
-- `entranceplan`: Free Edition
-- `basic`: Basic Edition
-- `medium`: Standard Edition
-- `high`: Advanced Edition
+Chinese website account:
+  - `basic`: Basic version
+  - `medium`: Standard version
+  - `high`: Advanced version
 
-For International site accounts:
+International Station Account:
   - `entranceplan_intl`: Entrance version
   - `basicplan_intl`: Pro version
   - `vipplan_intl`: Premium version
@@ -100,7 +99,7 @@ The following attributes are exported:
 * `id` - The ID of the resource supplied above.
 * `create_time` - The time when the plan was purchased.
 * `instance_status` - The instance status. 
-* `status` - The plan status.
+* `status` - The plan status. , the plan is unavailable.
 
 ## Timeouts
 

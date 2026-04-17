@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	cs "github.com/alibabacloud-go/cs-20151215/v7/client"
+	cs "github.com/alibabacloud-go/cs-20151215/v5/client"
 	"github.com/alibabacloud-go/tea/tea"
 	"github.com/aliyun/terraform-provider-alicloud/alicloud/connectivity"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
@@ -54,7 +54,6 @@ func resourceAliCloudCSKubernetesPolicyInstance() *schema.Resource {
 			"action": {
 				Type:         schema.TypeString,
 				Optional:     true,
-				Computed:     true,
 				ValidateFunc: StringInSlice([]string{"warn", "deny"}, false),
 			},
 			"policy_name": {

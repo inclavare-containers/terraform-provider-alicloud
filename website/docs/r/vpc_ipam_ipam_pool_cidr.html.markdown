@@ -52,24 +52,22 @@ resource "alicloud_vpc_ipam_ipam_pool_cidr" "default" {
 }
 ```
 
-
 📚 Need more examples? [VIEW MORE EXAMPLES](https://api.aliyun.com/terraform?activeTab=sample&source=Sample&sourcePath=OfficialSample:alicloud_vpc_ipam_ipam_pool_cidr&spm=docs.r.vpc_ipam_ipam_pool_cidr.example&intl_lang=EN_US)
 
 ## Argument Reference
 
 The following arguments are supported:
-* `cidr` - (Optional, ForceNew, Computed) The CIDR address segment to be preset.
+* `cidr` - (Required, ForceNew) The CIDR address segment to be preset.
+
+-> **NOTE:**  currently, only IPv4 address segments are supported.
+
 * `ipam_pool_id` - (Required, ForceNew) The ID of the IPAM pool instance.
-* `netmask_length` - (Optional, Int, Available since v1.272.0) Preset Cidr for an address pool by using a mask, supporting sub-pools and public top pools
-
--> **NOTE:** This parameter is immutable. Changing it after creation has no effect.
-
 
 ## Attributes Reference
 
 The following attributes are exported:
-* `id` - The ID of the resource supplied above. The value is formulated as `<ipam_pool_id>#<cidr>`.
-* `status` - The status of the resource.
+* `id` - The ID of the resource supplied above.The value is formulated as `<ipam_pool_id>:<cidr>`.
+* `status` - The status of the resource
 
 ## Timeouts
 
@@ -82,5 +80,5 @@ The `timeouts` block allows you to specify [timeouts](https://developer.hashicor
 Vpc Ipam Ipam Pool Cidr can be imported using the id, e.g.
 
 ```shell
-$ terraform import alicloud_vpc_ipam_ipam_pool_cidr.example <ipam_pool_id>#<cidr>
+$ terraform import alicloud_vpc_ipam_ipam_pool_cidr.example <ipam_pool_id>:<cidr>
 ```

@@ -62,7 +62,6 @@ func resourceAliyunSecurityGroupRule() *schema.Resource {
 				Optional:     true,
 				ForceNew:     true,
 				AtLeastOneOf: []string{"cidr_ip", "ipv6_cidr_ip", "source_security_group_id", "prefix_list_id"},
-				ValidateFunc: validation.IsCIDR,
 			},
 			"ipv6_cidr_ip": {
 				Type:          schema.TypeString,
@@ -73,7 +72,6 @@ func resourceAliyunSecurityGroupRule() *schema.Resource {
 					v, _ := compressIPv6OrCIDR(new)
 					return v == old
 				},
-				ValidateFunc: validation.IsCIDR,
 			},
 			"source_security_group_id": {
 				Type:          schema.TypeString,
@@ -461,16 +459,16 @@ func buildAliyunSGRuleRequest(d *schema.ResourceData, meta interface{}) (*reques
 
 	direction := d.Get("type").(string)
 
-	portRange := d.Get("port_range").(string)
-	request.QueryParams["PortRange"] = portRange
+	port_range := d.Get("port_range").(string)
+	request.QueryParams["PortRange"] = port_range
 
 	if v, ok := d.GetOk("ip_protocol"); ok {
 		request.QueryParams["IpProtocol"] = v.(string)
 		if v.(string) == string(Tcp) || v.(string) == string(Udp) {
-			if portRange == AllPortRange {
+			if port_range == AllPortRange {
 				return nil, fmt.Errorf("'tcp' and 'udp' can support port range: [1, 65535]. Please correct it and try again.")
 			}
-		} else if portRange != AllPortRange {
+		} else if port_range != AllPortRange {
 			return nil, fmt.Errorf("'icmp', 'gre' and 'all' only support port range '-1/-1'. Please correct it and try again.")
 		}
 	}
@@ -541,11 +539,20 @@ func buildAliyunSGRuleRequest(d *schema.ResourceData, meta interface{}) (*reques
 	}
 
 	request.QueryParams["SecurityGroupId"] = sgId
-	request.QueryParams["Description"] = d.Get("description").(string)
+
+	description := d.Get("description").(string)
+	request.QueryParams["Description"] = description
+
 	return request, nil
 }
 
 func parseSecurityRuleId(d *schema.ResourceData, meta interface{}, index int) (result string) {
 	parts := strings.Split(d.Id(), ":")
+	defer func() {
+		if e := recover(); e != nil {
+			log.Printf("Panicing %s\r\n", e)
+			result = ""
+		}
+	}()
 	return parts[index]
 }

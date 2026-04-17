@@ -36,7 +36,7 @@ func (s *EsaServiceV2) DescribeEsaSite(id string) (object map[string]interface{}
 		response, err = client.RpcGet("ESA", "2024-09-10", action, query, request)
 
 		if err != nil {
-			if IsExpectedErrors(err, []string{"Site.ServiceBusy", "TooManyRequests"}) || NeedRetry(err) {
+			if NeedRetry(err) {
 				wait()
 				return resource.RetryableError(err)
 			}
@@ -223,40 +223,6 @@ func (s *EsaServiceV2) DescribeSiteGetCacheReserve(id string) (object map[string
 	addDebug(action, response, request)
 	if err != nil {
 		if IsExpectedErrors(err, []string{"SiteNotFound", "101", "32"}) {
-			return object, WrapErrorf(NotFoundErr("Site", id), NotFoundMsg, response)
-		}
-		return object, WrapErrorf(err, DefaultErrorMsg, id, action, AlibabaCloudSdkGoERROR)
-	}
-
-	return response, nil
-}
-func (s *EsaServiceV2) DescribeSiteDescribeHttpDDoSAttackIntelligentProtection(id string) (object map[string]interface{}, err error) {
-	client := s.client
-	var request map[string]interface{}
-	var response map[string]interface{}
-	var query map[string]interface{}
-	request = make(map[string]interface{})
-	query = make(map[string]interface{})
-	request["SiteId"] = id
-
-	action := "DescribeHttpDDoSAttackIntelligentProtection"
-
-	wait := incrementalWait(3*time.Second, 5*time.Second)
-	err = resource.Retry(1*time.Minute, func() *resource.RetryError {
-		response, err = client.RpcPost("ESA", "2024-09-10", action, query, request, true)
-
-		if err != nil {
-			if NeedRetry(err) {
-				wait()
-				return resource.RetryableError(err)
-			}
-			return resource.NonRetryableError(err)
-		}
-		return nil
-	})
-	addDebug(action, response, request)
-	if err != nil {
-		if IsExpectedErrors(err, []string{"SiteNotFound", "32", "101", "SiteIdDDoSVersionCheckFailed"}) {
 			return object, WrapErrorf(NotFoundErr("Site", id), NotFoundMsg, response)
 		}
 		return object, WrapErrorf(err, DefaultErrorMsg, id, action, AlibabaCloudSdkGoERROR)
@@ -502,147 +468,6 @@ func (s *EsaServiceV2) DescribeSiteGetSitePause(id string) (object map[string]in
 
 	return response, nil
 }
-func (s *EsaServiceV2) DescribeSiteDescribeHttpDDoSAttackProtection(id string) (object map[string]interface{}, err error) {
-	client := s.client
-	var request map[string]interface{}
-	var response map[string]interface{}
-	var query map[string]interface{}
-	request = make(map[string]interface{})
-	query = make(map[string]interface{})
-	request["SiteId"] = id
-
-	action := "DescribeHttpDDoSAttackProtection"
-
-	wait := incrementalWait(3*time.Second, 5*time.Second)
-	err = resource.Retry(1*time.Minute, func() *resource.RetryError {
-		response, err = client.RpcPost("ESA", "2024-09-10", action, query, request, true)
-
-		if err != nil {
-			if NeedRetry(err) {
-				wait()
-				return resource.RetryableError(err)
-			}
-			return resource.NonRetryableError(err)
-		}
-		return nil
-	})
-	addDebug(action, response, request)
-	if err != nil {
-		if IsExpectedErrors(err, []string{"SiteNotFound", "32", "101", "SiteIdDDoSVersionCheckFailed"}) {
-			return object, WrapErrorf(NotFoundErr("Site", id), NotFoundMsg, response)
-		}
-		return object, WrapErrorf(err, DefaultErrorMsg, id, action, AlibabaCloudSdkGoERROR)
-	}
-
-	return response, nil
-}
-func (s *EsaServiceV2) DescribeSiteGetPerformanceDataCollection(id string) (object map[string]interface{}, err error) {
-	client := s.client
-	var request map[string]interface{}
-	var response map[string]interface{}
-	var query map[string]interface{}
-	request = make(map[string]interface{})
-	query = make(map[string]interface{})
-	request["SiteId"] = id
-
-	action := "GetPerformanceDataCollection"
-
-	wait := incrementalWait(3*time.Second, 5*time.Second)
-	err = resource.Retry(1*time.Minute, func() *resource.RetryError {
-		response, err = client.RpcPost("ESA", "2024-09-10", action, query, request, true)
-
-		if err != nil {
-			if NeedRetry(err) {
-				wait()
-				return resource.RetryableError(err)
-			}
-			return resource.NonRetryableError(err)
-		}
-		return nil
-	})
-	addDebug(action, response, request)
-	if err != nil {
-		if IsExpectedErrors(err, []string{"SiteNotFound", "101", "32"}) {
-			return object, WrapErrorf(NotFoundErr("Site", id), NotFoundMsg, response)
-		}
-		return object, WrapErrorf(err, DefaultErrorMsg, id, action, AlibabaCloudSdkGoERROR)
-	}
-
-	return response, nil
-}
-func (s *EsaServiceV2) DescribeSiteGetSiteWafSettings(id string) (object map[string]interface{}, err error) {
-	client := s.client
-	var request map[string]interface{}
-	var response map[string]interface{}
-	var query map[string]interface{}
-	request = make(map[string]interface{})
-	query = make(map[string]interface{})
-	request["SiteId"] = id
-
-	action := "GetSiteWafSettings"
-
-	wait := incrementalWait(3*time.Second, 5*time.Second)
-	err = resource.Retry(1*time.Minute, func() *resource.RetryError {
-		response, err = client.RpcPost("ESA", "2024-09-10", action, query, request, true)
-
-		if err != nil {
-			if NeedRetry(err) {
-				wait()
-				return resource.RetryableError(err)
-			}
-			return resource.NonRetryableError(err)
-		}
-		return nil
-	})
-	addDebug(action, response, request)
-	if err != nil {
-		if IsExpectedErrors(err, []string{"SiteNotFound", "101", "32"}) {
-			return object, WrapErrorf(NotFoundErr("Site", id), NotFoundMsg, response)
-		}
-		return object, WrapErrorf(err, DefaultErrorMsg, id, action, AlibabaCloudSdkGoERROR)
-	}
-
-	v, err := jsonpath.Get("$.Settings", response)
-	if err != nil {
-		return object, WrapErrorf(err, FailedGetAttributeMsg, id, "$.Settings", response)
-	}
-
-	return v.(map[string]interface{}), nil
-}
-func (s *EsaServiceV2) DescribeSiteGetAutomaticFrequencyControlConfig(id string) (object map[string]interface{}, err error) {
-	client := s.client
-	var request map[string]interface{}
-	var response map[string]interface{}
-	var query map[string]interface{}
-	request = make(map[string]interface{})
-	query = make(map[string]interface{})
-	request["SiteId"] = id
-
-	action := "GetAutomaticFrequencyControlConfig"
-
-	wait := incrementalWait(3*time.Second, 5*time.Second)
-	err = resource.Retry(1*time.Minute, func() *resource.RetryError {
-		response, err = client.RpcPost("ESA", "2024-09-10", action, query, request, true)
-
-		if err != nil {
-			if NeedRetry(err) {
-				wait()
-				return resource.RetryableError(err)
-			}
-			return resource.NonRetryableError(err)
-		}
-		return nil
-	})
-	addDebug(action, response, request)
-	if err != nil {
-		if IsExpectedErrors(err, []string{"SiteNotFound", "101", "32"}) {
-			return object, WrapErrorf(NotFoundErr("Site", id), NotFoundMsg, response)
-		}
-		return object, WrapErrorf(err, DefaultErrorMsg, id, action, AlibabaCloudSdkGoERROR)
-	}
-
-	return response, nil
-}
 
 func (s *EsaServiceV2) EsaSiteStateRefreshFunc(id string, field string, failStates []string) resource.StateRefreshFunc {
 	return s.EsaSiteStateRefreshFuncWithApi(id, field, failStates, s.DescribeEsaSite)
@@ -739,7 +564,7 @@ func (s *EsaServiceV2) SetResourceTags(d *schema.ResourceData, resourceType stri
 			jsonString, _ = sjson.Set(jsonString, "ResourceId.0", d.Id())
 			_ = json.Unmarshal([]byte(jsonString), &request)
 
-			wait := incrementalWait(3*time.Second, 3*time.Second)
+			wait := incrementalWait(3*time.Second, 5*time.Second)
 			err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
 				response, err = client.RpcPost("ESA", "2024-09-10", action, query, request, true)
 				if err != nil {
@@ -775,7 +600,7 @@ func (s *EsaServiceV2) SetResourceTags(d *schema.ResourceData, resourceType stri
 			jsonString, _ = sjson.Set(jsonString, "ResourceId.0", d.Id())
 			_ = json.Unmarshal([]byte(jsonString), &request)
 
-			wait := incrementalWait(3*time.Second, 3*time.Second)
+			wait := incrementalWait(3*time.Second, 5*time.Second)
 			err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
 				response, err = client.RpcPost("ESA", "2024-09-10", action, query, request, true)
 				if err != nil {
@@ -807,18 +632,18 @@ func (s *EsaServiceV2) DescribeEsaRatePlanInstance(id string) (object map[string
 	var request map[string]interface{}
 	var response map[string]interface{}
 	var query map[string]interface{}
+	action := "ListUserRatePlanInstances"
 	request = make(map[string]interface{})
 	query = make(map[string]interface{})
 	query["InstanceId"] = id
-
-	action := "ListUserRatePlanInstances"
+	query["RegionId"] = client.RegionId
 
 	wait := incrementalWait(3*time.Second, 5*time.Second)
 	err = resource.Retry(1*time.Minute, func() *resource.RetryError {
-		response, err = client.RpcGet("ESA", "2024-09-10", action, query, request)
+		response, err = client.RpcGet("ESA", "2024-09-10", action, query, nil)
 
 		if err != nil {
-			if IsExpectedErrors(err, []string{"Site.ServiceBusy", "TooManyRequests"}) || NeedRetry(err) {
+			if NeedRetry(err) {
 				wait()
 				return resource.RetryableError(err)
 			}
@@ -841,30 +666,28 @@ func (s *EsaServiceV2) DescribeEsaRatePlanInstance(id string) (object map[string
 	}
 
 	currentStatus := v.([]interface{})[0].(map[string]interface{})["Status"]
-	if fmt.Sprint(currentStatus) == "offline" {
+	if currentStatus == "offline" {
 		return object, WrapErrorf(NotFoundErr("RatePlanInstance", id), NotFoundMsg, response)
 	}
 
 	return v.([]interface{})[0].(map[string]interface{}), nil
 }
-
-func (s *EsaServiceV2) DescribeRatePlanInstanceDescribeRatePlanInstanceStatus(id string) (object map[string]interface{}, err error) {
+func (s *EsaServiceV2) DescribeDescribeRatePlanInstanceStatus(id string) (object map[string]interface{}, err error) {
 	client := s.client
 	var request map[string]interface{}
 	var response map[string]interface{}
 	var query map[string]interface{}
+	action := "DescribeRatePlanInstanceStatus"
 	request = make(map[string]interface{})
 	query = make(map[string]interface{})
-	request["InstanceId"] = id
-
-	action := "DescribeRatePlanInstanceStatus"
+	query["InstanceId"] = id
 
 	wait := incrementalWait(3*time.Second, 5*time.Second)
 	err = resource.Retry(1*time.Minute, func() *resource.RetryError {
-		response, err = client.RpcPost("ESA", "2024-09-10", action, query, request, true)
+		response, err = client.RpcPost("ESA", "2024-09-10", action, query, nil, true)
 
 		if err != nil {
-			if IsExpectedErrors(err, []string{"Site.ServiceBusy", "TooManyRequests"}) || NeedRetry(err) {
+			if NeedRetry(err) {
 				wait()
 				return resource.RetryableError(err)
 			}
@@ -881,19 +704,15 @@ func (s *EsaServiceV2) DescribeRatePlanInstanceDescribeRatePlanInstanceStatus(id
 }
 
 func (s *EsaServiceV2) EsaRatePlanInstanceStateRefreshFunc(id string, field string, failStates []string) resource.StateRefreshFunc {
-	return s.EsaRatePlanInstanceStateRefreshFuncWithApi(id, field, failStates, s.DescribeEsaRatePlanInstance)
-}
-
-func (s *EsaServiceV2) EsaRatePlanInstanceStateRefreshFuncWithApi(id string, field string, failStates []string, call func(id string) (map[string]interface{}, error)) resource.StateRefreshFunc {
 	return func() (interface{}, string, error) {
-		object, err := call(id)
+		object, err := s.DescribeDescribeRatePlanInstanceStatus(id)
 		if err != nil {
 			if NotFoundError(err) {
 				return object, "", nil
 			}
 			return nil, "", WrapError(err)
 		}
-		object["BillingMode"] = convertEsaRatePlanInstanceInstanceInfoBillingModeResponse(object["BillingMode"])
+
 		v, err := jsonpath.Get(field, object)
 		currentStatus := fmt.Sprint(v)
 
@@ -1150,7 +969,7 @@ func (s *EsaServiceV2) DescribeEsaHttpRequestHeaderModificationRule(id string) (
 		response, err = client.RpcGet("ESA", "2024-09-10", action, query, request)
 
 		if err != nil {
-			if IsExpectedErrors(err, []string{"Site.ServiceBusy", "TooManyRequests"}) || NeedRetry(err) {
+			if NeedRetry(err) {
 				wait()
 				return resource.RetryableError(err)
 			}
@@ -1214,7 +1033,6 @@ func (s *EsaServiceV2) DescribeEsaRewriteUrlRule(id string) (object map[string]i
 	parts := strings.Split(id, ":")
 	if len(parts) != 2 {
 		err = WrapError(fmt.Errorf("invalid Resource Id %s. Expected parts' length %d, got %d", id, 2, len(parts)))
-		return nil, err
 	}
 	request = make(map[string]interface{})
 	query = make(map[string]interface{})
@@ -1228,7 +1046,7 @@ func (s *EsaServiceV2) DescribeEsaRewriteUrlRule(id string) (object map[string]i
 		response, err = client.RpcGet("ESA", "2024-09-10", action, query, request)
 
 		if err != nil {
-			if IsExpectedErrors(err, []string{"Site.ServiceBusy", "TooManyRequests", "InternalException"}) || NeedRetry(err) {
+			if IsExpectedErrors(err, []string{"InternalException"}) || NeedRetry(err) {
 				wait()
 				return resource.RetryableError(err)
 			}
@@ -1310,7 +1128,7 @@ func (s *EsaServiceV2) DescribeEsaRedirectRule(id string) (object map[string]int
 		response, err = client.RpcGet("ESA", "2024-09-10", action, query, request)
 
 		if err != nil {
-			if IsExpectedErrors(err, []string{"Site.ServiceBusy", "TooManyRequests"}) || NeedRetry(err) {
+			if NeedRetry(err) {
 				wait()
 				return resource.RetryableError(err)
 			}
@@ -1384,7 +1202,7 @@ func (s *EsaServiceV2) DescribeEsaHttpResponseHeaderModificationRule(id string) 
 		response, err = client.RpcGet("ESA", "2024-09-10", action, query, request)
 
 		if err != nil {
-			if IsExpectedErrors(err, []string{"Site.ServiceBusy", "TooManyRequests"}) || NeedRetry(err) {
+			if NeedRetry(err) {
 				wait()
 				return resource.RetryableError(err)
 			}
@@ -1461,7 +1279,7 @@ func (s *EsaServiceV2) DescribeEsaHttpsBasicConfiguration(id string) (object map
 		response, err = client.RpcGet("ESA", "2024-09-10", action, query, request)
 
 		if err != nil {
-			if IsExpectedErrors(err, []string{"Site.ServiceBusy", "TooManyRequests"}) || NeedRetry(err) {
+			if NeedRetry(err) {
 				wait()
 				return resource.RetryableError(err)
 			}
@@ -1575,7 +1393,7 @@ func (s *EsaServiceV2) DescribeEsaCompressionRule(id string) (object map[string]
 		response, err = client.RpcGet("ESA", "2024-09-10", action, query, request)
 
 		if err != nil {
-			if IsExpectedErrors(err, []string{"Site.ServiceBusy", "TooManyRequests"}) || NeedRetry(err) {
+			if NeedRetry(err) {
 				wait()
 				return resource.RetryableError(err)
 			}
@@ -1649,7 +1467,7 @@ func (s *EsaServiceV2) DescribeEsaHttpsApplicationConfiguration(id string) (obje
 		response, err = client.RpcGet("ESA", "2024-09-10", action, query, request)
 
 		if err != nil {
-			if IsExpectedErrors(err, []string{"TooManyRequests", "undefined"}) || NeedRetry(err) {
+			if NeedRetry(err) {
 				wait()
 				return resource.RetryableError(err)
 			}
@@ -1727,7 +1545,7 @@ func (s *EsaServiceV2) DescribeEsaNetworkOptimization(id string) (object map[str
 		response, err = client.RpcGet("ESA", "2024-09-10", action, query, request)
 
 		if err != nil {
-			if IsExpectedErrors(err, []string{"Site.ServiceBusy", "TooManyRequests"}) || NeedRetry(err) {
+			if NeedRetry(err) {
 				wait()
 				return resource.RetryableError(err)
 			}
@@ -1801,7 +1619,7 @@ func (s *EsaServiceV2) DescribeEsaCacheRule(id string) (object map[string]interf
 		response, err = client.RpcGet("ESA", "2024-09-10", action, query, request)
 
 		if err != nil {
-			if IsExpectedErrors(err, []string{"Site.ServiceBusy", "TooManyRequests", "LockFailed"}) || NeedRetry(err) {
+			if IsExpectedErrors(err, []string{"LockFailed"}) || NeedRetry(err) {
 				wait()
 				return resource.RetryableError(err)
 			}
@@ -1880,7 +1698,7 @@ func (s *EsaServiceV2) DescribeEsaOriginRule(id string) (object map[string]inter
 		response, err = client.RpcGet("ESA", "2024-09-10", action, query, request)
 
 		if err != nil {
-			if IsExpectedErrors(err, []string{"Site.ServiceBusy", "TooManyRequests"}) || NeedRetry(err) {
+			if NeedRetry(err) {
 				wait()
 				return resource.RetryableError(err)
 			}
@@ -1958,7 +1776,7 @@ func (s *EsaServiceV2) DescribeEsaImageTransform(id string) (object map[string]i
 		response, err = client.RpcGet("ESA", "2024-09-10", action, query, request)
 
 		if err != nil {
-			if IsExpectedErrors(err, []string{"Site.ServiceBusy", "TooManyRequests"}) || NeedRetry(err) {
+			if NeedRetry(err) {
 				wait()
 				return resource.RetryableError(err)
 			}
@@ -3181,7 +2999,7 @@ func (s *EsaServiceV2) DescribeEsaVideoProcessing(id string) (object map[string]
 		response, err = client.RpcPost("ESA", "2024-09-10", action, query, request, true)
 
 		if err != nil {
-			if IsExpectedErrors(err, []string{"Site.ServiceBusy", "TooManyRequests"}) || NeedRetry(err) {
+			if NeedRetry(err) {
 				wait()
 				return resource.RetryableError(err)
 			}
@@ -4094,7 +3912,7 @@ func (s *EsaServiceV2) DescribeEsaWafRuleset(id string) (object map[string]inter
 		response, err = client.RpcPost("ESA", "2024-09-10", action, query, request, true)
 
 		if err != nil {
-			if IsExpectedErrors(err, []string{"Site.ServiceBusy", "TooManyRequests"}) || NeedRetry(err) {
+			if NeedRetry(err) {
 				wait()
 				return resource.RetryableError(err)
 			}
@@ -4173,7 +3991,7 @@ func (s *EsaServiceV2) DescribeEsaWafRule(id string) (object map[string]interfac
 		response, err = client.RpcPost("ESA", "2024-09-10", action, query, request, true)
 
 		if err != nil {
-			if IsExpectedErrors(err, []string{"Site.ServiceBusy", "TooManyRequests"}) || NeedRetry(err) {
+			if NeedRetry(err) {
 				wait()
 				return resource.RetryableError(err)
 			}
@@ -4375,7 +4193,6 @@ func (s *EsaServiceV2) EsaLoadBalancerStateRefreshFuncWithApi(id string, field s
 }
 
 // DescribeEsaLoadBalancer >>> Encapsulated.
-
 // DescribeEsaHttpIncomingRequestHeaderModificationRule <<< Encapsulated get interface for Esa HttpIncomingRequestHeaderModificationRule.
 
 func (s *EsaServiceV2) DescribeEsaHttpIncomingRequestHeaderModificationRule(id string) (object map[string]interface{}, err error) {
@@ -4400,7 +4217,7 @@ func (s *EsaServiceV2) DescribeEsaHttpIncomingRequestHeaderModificationRule(id s
 		response, err = client.RpcGet("ESA", "2024-09-10", action, query, request)
 
 		if err != nil {
-			if IsExpectedErrors(err, []string{"Site.ServiceBusy", "TooManyRequests"}) || NeedRetry(err) {
+			if NeedRetry(err) {
 				wait()
 				return resource.RetryableError(err)
 			}
@@ -4449,7 +4266,6 @@ func (s *EsaServiceV2) EsaHttpIncomingRequestHeaderModificationRuleStateRefreshF
 }
 
 // DescribeEsaHttpIncomingRequestHeaderModificationRule >>> Encapsulated.
-
 // DescribeEsaHttpIncomingResponseHeaderModificationRule <<< Encapsulated get interface for Esa HttpIncomingResponseHeaderModificationRule.
 
 func (s *EsaServiceV2) DescribeEsaHttpIncomingResponseHeaderModificationRule(id string) (object map[string]interface{}, err error) {
@@ -4474,7 +4290,7 @@ func (s *EsaServiceV2) DescribeEsaHttpIncomingResponseHeaderModificationRule(id 
 		response, err = client.RpcGet("ESA", "2024-09-10", action, query, request)
 
 		if err != nil {
-			if IsExpectedErrors(err, []string{"Site.ServiceBusy", "TooManyRequests"}) || NeedRetry(err) {
+			if NeedRetry(err) {
 				wait()
 				return resource.RetryableError(err)
 			}
@@ -4523,85 +4339,3 @@ func (s *EsaServiceV2) EsaHttpIncomingResponseHeaderModificationRuleStateRefresh
 }
 
 // DescribeEsaHttpIncomingResponseHeaderModificationRule >>> Encapsulated.
-
-// DescribeEsaCustomResponseCodeRule <<< Encapsulated get interface for Esa CustomResponseCodeRule.
-
-func (s *EsaServiceV2) DescribeEsaCustomResponseCodeRule(id string) (object map[string]interface{}, err error) {
-	client := s.client
-	var request map[string]interface{}
-	var response map[string]interface{}
-	var query map[string]interface{}
-	parts := strings.Split(id, ":")
-	if len(parts) != 2 {
-		err = WrapError(fmt.Errorf("invalid Resource Id %s. Expected parts' length %d, got %d", id, 2, len(parts)))
-		return nil, err
-	}
-	request = make(map[string]interface{})
-	query = make(map[string]interface{})
-	request["ConfigId"] = parts[1]
-	request["SiteId"] = parts[0]
-
-	action := "GetCustomResponseCodeRule"
-
-	wait := incrementalWait(3*time.Second, 5*time.Second)
-	err = resource.Retry(1*time.Minute, func() *resource.RetryError {
-		response, err = client.RpcPost("ESA", "2024-09-10", action, query, request, true)
-
-		if err != nil {
-			if NeedRetry(err) {
-				wait()
-				return resource.RetryableError(err)
-			}
-			return resource.NonRetryableError(err)
-		}
-		return nil
-	})
-	addDebug(action, response, request)
-	if err != nil {
-		if IsExpectedErrors(err, []string{"SiteNotFound"}) {
-			return object, WrapErrorf(NotFoundErr("CustomResponseCodeRule", id), NotFoundMsg, response)
-		}
-		return object, WrapErrorf(err, DefaultErrorMsg, id, action, AlibabaCloudSdkGoERROR)
-	}
-
-	currentStatus := response["ConfigId"]
-	if currentStatus == nil {
-		return object, WrapErrorf(NotFoundErr("CustomResponseCodeRule", id), NotFoundMsg, response)
-	}
-
-	return response, nil
-}
-
-func (s *EsaServiceV2) EsaCustomResponseCodeRuleStateRefreshFunc(id string, field string, failStates []string) resource.StateRefreshFunc {
-	return s.EsaCustomResponseCodeRuleStateRefreshFuncWithApi(id, field, failStates, s.DescribeEsaCustomResponseCodeRule)
-}
-
-func (s *EsaServiceV2) EsaCustomResponseCodeRuleStateRefreshFuncWithApi(id string, field string, failStates []string, call func(id string) (map[string]interface{}, error)) resource.StateRefreshFunc {
-	return func() (interface{}, string, error) {
-		object, err := call(id)
-		if err != nil {
-			if NotFoundError(err) {
-				return object, "", nil
-			}
-			return nil, "", WrapError(err)
-		}
-		v, err := jsonpath.Get(field, object)
-		currentStatus := fmt.Sprint(v)
-
-		if strings.HasPrefix(field, "#") {
-			v, _ := jsonpath.Get(strings.TrimPrefix(field, "#"), object)
-			if v != nil {
-				currentStatus = "#CHECKSET"
-			}
-		}
-
-		for _, failState := range failStates {
-			if currentStatus == failState {
-				return object, currentStatus, WrapError(Error(FailedToReachTargetStatus, currentStatus))
-			}
-		}
-		return object, currentStatus, nil
-	}
-}
-
-// DescribeEsaCustomResponseCodeRule >>> Encapsulated.

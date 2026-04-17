@@ -793,7 +793,6 @@ func TestProviderConfigure_CredentialsURI(t *testing.T) {
 	// 创建模拟服务器返回凭证
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		response := `{
-			"Code": "Success",
 			"AccessKeyId": "LTAI5tURITestAK123456",
 			"AccessKeySecret": "fakeAccessKeySecret",
 			"SecurityToken": "fakeSecurityToken",
@@ -993,17 +992,15 @@ func TestProviderConfigure_ProfileExternal(t *testing.T) {
 	}
 	defer os.RemoveAll(tmpDir)
 
-	// 创建外部程序脚本，输出格式需符合 credentials-go SDK 的 externalCredentialResponse 结构
-	// 字段名使用 snake_case: access_key_id, access_key_secret, sts_token, expiration
+	// 创建外部程序脚本
 	scriptPath := filepath.Join(tmpDir, "credential-provider.sh")
-	scriptContent := `#!/bin/sh
+	scriptContent := `#!/bin/bash
 cat <<EOF
 {
-  "mode": "External",
-  "access_key_id": "STS.ExternalAK123456789",
-  "access_key_secret": "ExternalSecretKey1234567890",
-  "sts_token": "ExternalSecurityToken12345",
-  "expiration": "2099-12-31T23:59:59Z"
+  "AccessKeyId": "STS.ExternalAK123456789",
+  "AccessKeySecret": "ExternalSecretKey1234567890",
+  "SecurityToken": "ExternalSecurityToken12345",
+  "Expiration": "2099-12-31T23:59:59Z"
 }
 EOF
 `

@@ -22,13 +22,15 @@ For more details supported regions, see [Service endpoints](https://www.alibabac
 
 -> **NOTE:** Available since v1.93.0.
 
--> **NOTE:** FCV3 is the latest version of Alibaba Cloud Function Compute service. It provides enhanced performance, more features, and better scalability compared to previous versions (FC and FCV2). We strongly recommend using FCV3 for all new function compute deployments.
-
--> **DEPRECATED:** This resource has been deprecated and will be removed in a future version. We recommend migrating to FCV3, where you can create functions directly using `alicloud_fcv3_function` without the need for a separate service resource.
-
 ## Example Usage
 
 Basic Usage
+
+<div style="display: block;margin-bottom: 40px;"><div class="oics-button" style="float: right;position: absolute;margin-bottom: 10px;">
+  <a href="https://api.aliyun.com/terraform?resource=alicloud_fc_service&exampleId=35d31535-c004-be8f-b8b6-1bedc610f346729e2f9e&activeTab=example&spm=docs.r.fc_service.0.35d31535c0&intl_lang=EN_US" target="_blank">
+    <img alt="Open in AliCloud" src="https://img.alicdn.com/imgextra/i1/O1CN01hjjqXv1uYUlY56FyX_!!6000000006049-55-tps-254-36.svg" style="max-height: 44px; max-width: 100%;">
+  </a>
+</div></div>
 
 ```terraform
 provider "alicloud" {

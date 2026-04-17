@@ -20,7 +20,7 @@ For information about Click House DBCluster and how to use it, see [What is DBCl
 Basic Usage
 
 <div style="display: block;margin-bottom: 40px;"><div class="oics-button" style="float: right;position: absolute;margin-bottom: 10px;">
-  <a href="https://api.aliyun.com/terraform?resource=alicloud_click_house_db_cluster&exampleId=51360ee7-c880-a81b-e66b-abd3cf386b9a1c640f33&activeTab=example&spm=docs.r.click_house_db_cluster.0.51360ee7c8&intl_lang=EN_US" target="_blank">
+  <a href="https://api.aliyun.com/terraform?resource=alicloud_click_house_db_cluster&exampleId=48829c1f-8c78-dc66-0efd-a941ba3fe84f0e1bce80&activeTab=example&spm=docs.r.click_house_db_cluster.0.48829c1f8c&intl_lang=EN_US" target="_blank">
     <img alt="Open in AliCloud" src="https://img.alicdn.com/imgextra/i1/O1CN01hjjqXv1uYUlY56FyX_!!6000000006049-55-tps-254-36.svg" style="max-height: 44px; max-width: 100%;">
   </a>
 </div></div>
@@ -58,7 +58,7 @@ resource "alicloud_vswitch" "default" {
 }
 
 resource "alicloud_click_house_db_cluster" "default" {
-  db_cluster_version      = "25.3"
+  db_cluster_version      = "23.8"
   category                = "Basic"
   db_cluster_class        = "S8"
   db_cluster_network_type = "vpc"
@@ -83,7 +83,7 @@ The following arguments are supported:
   * Under the condition that the category is the `Basic`, Valid values: `LS20`, `LS40`, `LS80`,`S8`, `S16`, `S32`, `S64`,`S80`, `S104`.
   * Under the condition that the category is the `HighAvailability`, Valid values: `LC20`, `LC40`, `LC80`,`C8`, `C16`, `C32`, `C64`, `C80`, `C104`.
 * `db_cluster_network_type` - (Required, ForceNew) The DBCluster network type. Valid values: `vpc`.
-* `db_cluster_version` - (Required, ForceNew) The DBCluster version. Valid values: `20.3.10.75`, `20.8.7.15`, `21.8.10.19`, `22.8.5.29`, `23.8`, `25.3`. **NOTE:** `19.15.2.2` is no longer supported. From version 1.191.0, `db_cluster_version` can be set to `22.8.5.29`.
+* `db_cluster_version` - (Required, ForceNew) The DBCluster version. Valid values: `20.3.10.75`, `20.8.7.15`, `21.8.10.19`, `22.8.5.29`, `23.8`. **NOTE:** `19.15.2.2` is no longer supported. From version 1.191.0, `db_cluster_version` can be set to `22.8.5.29`.
 * `db_node_storage` - (Required) The db node storage.
 * `db_node_group_count` - (Required, ForceNew) The db node group count. The number should between 1 and 48.
 * `encryption_key` - (Optional, ForceNew) Key management service KMS key ID. It is valid and required when encryption_type is `CloudDisk`.

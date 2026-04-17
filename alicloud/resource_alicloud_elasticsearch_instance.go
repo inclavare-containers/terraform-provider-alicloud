@@ -183,10 +183,6 @@ func resourceAliCloudElasticsearchInstance() *schema.Resource {
 				Type:     schema.TypeInt,
 				Computed: true,
 			},
-			"kibana_private_domain": {
-				Type:     schema.TypeString,
-				Computed: true,
-			},
 			"kibana_private_security_group_id": {
 				Type:     schema.TypeString,
 				Optional: true,
@@ -848,7 +844,6 @@ func resourceAliCloudElasticsearchInstanceRead(d *schema.ResourceData, meta inte
 	d.Set("instance_category", objectRaw["instanceCategory"])
 	d.Set("kibana_domain", objectRaw["kibanaDomain"])
 	d.Set("kibana_port", objectRaw["kibanaPort"])
-	d.Set("kibana_private_domain", objectRaw["kibanaPrivateDomain"])
 	d.Set("payment_type", convertElasticsearchInstanceResultpaymentTypeResponse(objectRaw["paymentType"]))
 	d.Set("instance_charge_type", getChargeType(objectRaw["paymentType"].(string)))
 	d.Set("protocol", objectRaw["protocol"])
@@ -1138,11 +1133,7 @@ func resourceAliCloudElasticsearchInstanceUpdate(d *schema.ResourceData, meta in
 		}
 	}
 
-	initedEnableKibanaPrivateNetwork := false
-	if _, ok := d.GetOkExists("enable_kibana_private_network"); ok && d.IsNewResource() {
-		initedEnableKibanaPrivateNetwork = true
-	}
-	if initedEnableKibanaPrivateNetwork || d.HasChange("enable_kibana_private_network") {
+	if d.HasChange("enable_kibana_private_network") {
 		var err error
 		target := d.Get("enable_kibana_private_network").(bool)
 
@@ -1318,11 +1309,7 @@ func resourceAliCloudElasticsearchInstanceUpdate(d *schema.ResourceData, meta in
 		}
 	}
 
-	initedEnablePublic := false
-	if _, ok := d.GetOkExists("enable_public"); ok && d.IsNewResource() {
-		initedEnablePublic = true
-	}
-	if initedEnablePublic || d.HasChange("enable_public") {
+	if d.HasChange("enable_public") {
 		var err error
 		target := d.Get("enable_public").(bool)
 
@@ -1404,11 +1391,7 @@ func resourceAliCloudElasticsearchInstanceUpdate(d *schema.ResourceData, meta in
 		}
 	}
 
-	initedEnableKibanaPublicNetwork := false
-	if _, ok := d.GetOkExists("enable_kibana_public_network"); ok && d.IsNewResource() {
-		initedEnableKibanaPublicNetwork = true
-	}
-	if initedEnableKibanaPublicNetwork || d.HasChange("enable_kibana_public_network") {
+	if d.HasChange("enable_kibana_public_network") {
 		var err error
 		target := d.Get("enable_kibana_public_network").(bool)
 
@@ -1842,7 +1825,7 @@ func resourceAliCloudElasticsearchInstanceUpdate(d *schema.ResourceData, meta in
 		err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
 			response, err = client.RoaPost("elasticsearch", "2017-06-13", action, query, header, body, true)
 			if err != nil {
-				if IsExpectedErrors(err, []string{"ConcurrencyUpdateInstanceConflict", "InstanceDuplicateScheduledTask", "ServiceUnavailable", "InstanceStatusNotSupportCurrentAction"}) || NeedRetry(err) {
+				if IsExpectedErrors(err, []string{"ConcurrencyUpdateInstanceConflict", "InstanceStatusNotSupportCurrentAction", "InstanceDuplicateScheduledTask"}) || NeedRetry(err) {
 					wait()
 					return resource.RetryableError(err)
 				}
@@ -2227,7 +2210,6 @@ func convertElasticsearchInstanceResultpaymentTypeResponse(source interface{}) i
 	}
 	return source
 }
-
 func convertElasticsearchInstancepaymentTypeRequest(source interface{}) interface{} {
 	source = fmt.Sprint(source)
 	switch source {

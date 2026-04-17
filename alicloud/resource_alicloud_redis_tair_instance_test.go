@@ -3,13 +3,10 @@ package alicloud
 import (
 	"fmt"
 	"testing"
-	"time"
 
-	tea "github.com/alibabacloud-go/tea/tea"
 	"github.com/aliyun/terraform-provider-alicloud/alicloud/connectivity"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
-	"github.com/stretchr/testify/assert"
 )
 
 // Case 3314
@@ -941,7 +938,7 @@ func TestAccAliCloudRedisTairInstance_basic4491_twin(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			testAccPreCheck(t)
-			testAccPreCheckWithRegions(t, true, connectivity.TestSalveRegions)
+			testAccPreCheckWithRegions(t, true, connectivity.DRDSPolarDbxSupportRegions)
 		},
 		IDRefreshName: resourceId,
 		Providers:     testAccProviders,
@@ -952,15 +949,15 @@ func TestAccAliCloudRedisTairInstance_basic4491_twin(t *testing.T) {
 					"port":                      "6379",
 					"payment_type":              "PayAsYouGo",
 					"instance_type":             "tair_essd",
-					"zone_id":                   "${var.zone_id}",
+					"zone_id":                   "${data.alicloud_kvstore_zones.default.zones.1.id}",
 					"instance_class":            "tair.essd.standard.xlarge",
 					"tair_instance_name":        name,
-					"secondary_zone_id":         "${var.secondary_zone_id}",
+					"secondary_zone_id":         "${data.alicloud_kvstore_zones.default.zones.1.id}",
 					"vswitch_id":                "${alicloud_vswitch.default.id}",
 					"vpc_id":                    "${alicloud_vpc.default.id}",
 					"resource_group_id":         "${data.alicloud_resource_manager_resource_groups.default.groups.0.id}",
 					"storage_performance_level": "PL1",
-					"storage_size_gb":           "60",
+					"storage_size_gb":           "20",
 					"tags": map[string]string{
 						"Created": "TF",
 						"For":     "Test",
@@ -979,7 +976,7 @@ func TestAccAliCloudRedisTairInstance_basic4491_twin(t *testing.T) {
 						"vpc_id":                    CHECKSET,
 						"resource_group_id":         CHECKSET,
 						"storage_performance_level": "PL1",
-						"storage_size_gb":           "60",
+						"storage_size_gb":           "20",
 						"tags.%":                    "2",
 						"tags.Created":              "TF",
 						"tags.For":                  "Test",
@@ -1010,12 +1007,13 @@ variable "name" {
     default = "%s"
 }
 
-variable "zone_id" {
-  default = "cn-hangzhou-j"
+provider "alicloud" {
+  region = "cn-hangzhou"
 }
 
-variable "secondary_zone_id" {
-  default = "cn-hangzhou-k"
+data "alicloud_kvstore_zones" "default" {
+  product_type         = "Tair_essd"
+  instance_charge_type = "PostPaid"
 }
 
 resource "alicloud_vpc" "default" {
@@ -1026,7 +1024,7 @@ resource "alicloud_vpc" "default" {
 resource "alicloud_vswitch" "default" {
   vswitch_name = var.name
   vpc_id = alicloud_vpc.default.id
-  zone_id = var.zone_id
+  zone_id = data.alicloud_kvstore_zones.default.zones.1.id
   cidr_block = cidrsubnet(alicloud_vpc.default.cidr_block, 8, 4)
 }
 
@@ -1166,9 +1164,6 @@ variable "region_id" {
   default = "cn-beijing"
 }
 
-	data "alicloud_account" "default" {
-	}
-
 data "alicloud_resource_manager_resource_groups" "default" {}
 
 data "alicloud_zones" "default" {
@@ -1197,16 +1192,6 @@ resource "alicloud_security_group" "change" {
   name = var.name
   vpc_id = alicloud_vpc.defaultVpc.id
 }
-
-	data "alicloud_kms_instances" "default" {
-	}
-
-	resource "alicloud_kms_key" "default" {
-  		description            = var.name
-  		status                 = "Enabled"
-  		pending_window_in_days = 7
-        dkms_instance_id       = data.alicloud_kms_instances.default.instances.0.instance_id
-	}
 `, name)
 }
 
@@ -1468,23 +1453,10 @@ func TestAccAliCloudRedisTairInstance_basic6473_raw(t *testing.T) {
 				),
 			},
 			{
-				Config: testAccConfig(map[string]interface{}{
-					"tde_status":      "enabled",
-					"encryption_name": "AES-CTR-256",
-					"encryption_key":  "${alicloud_kms_key.default.id}",
-					"role_arn":        "acs:ram::" + "${data.alicloud_account.default.id}" + ":role/AliyunRdsInstanceEncryptionDefaultRole",
-				}),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheck(map[string]string{
-						"tde_status": "enabled",
-					}),
-				),
-			},
-			{
 				ResourceName:            resourceId,
 				ImportState:             true,
 				ImportStateVerify:       true,
-				ImportStateVerifyIgnore: []string{"auto_renew", "auto_renew_period", "backup_id", "cluster_backup_id", "effective_time", "force_upgrade", "global_instance_id", "password", "period", "read_only_count", "recover_config_mode", "slave_read_only_count", "src_db_instance_id", "encryption_name", "encryption_key", "role_arn"},
+				ImportStateVerifyIgnore: []string{"auto_renew", "auto_renew_period", "backup_id", "cluster_backup_id", "effective_time", "force_upgrade", "global_instance_id", "password", "period", "read_only_count", "recover_config_mode", "slave_read_only_count", "src_db_instance_id"},
 			},
 		},
 	})
@@ -1997,10 +1969,6 @@ func TestAccAliCloudRedisTairInstance_basic8729(t *testing.T) {
 					"security_ips":             "127.0.0.3,127.0.0.4",
 					"vpc_auth_mode":            "Open",
 					"connection_string_prefix": "test202411",
-					"tde_status":               "enabled",
-					"encryption_name":          "AES-CTR-256",
-					"encryption_key":           "${alicloud_kms_key.default.id}",
-					"role_arn":                 "acs:ram::" + "${data.alicloud_account.default.id}" + ":role/AliyunRdsInstanceEncryptionDefaultRole",
 				}),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheck(map[string]string{
@@ -2017,7 +1985,6 @@ func TestAccAliCloudRedisTairInstance_basic8729(t *testing.T) {
 						"security_ip_group_name": "test",
 						"security_ips":           "127.0.0.3,127.0.0.4",
 						"vpc_auth_mode":          "Open",
-						"tde_status":             "enabled",
 					}),
 				),
 			},
@@ -2055,7 +2022,7 @@ func TestAccAliCloudRedisTairInstance_basic8729(t *testing.T) {
 				ResourceName:            resourceId,
 				ImportState:             true,
 				ImportStateVerify:       true,
-				ImportStateVerifyIgnore: []string{"auto_renew", "auto_renew_period", "backup_id", "cluster_backup_id", "effective_time", "force_upgrade", "global_instance_id", "modify_mode", "password", "period", "read_only_count", "recover_config_mode", "slave_read_only_count", "src_db_instance_id", "connection_string_prefix", "encryption_name", "encryption_key", "role_arn"},
+				ImportStateVerifyIgnore: []string{"auto_renew", "auto_renew_period", "backup_id", "cluster_backup_id", "effective_time", "force_upgrade", "global_instance_id", "modify_mode", "password", "period", "read_only_count", "recover_config_mode", "slave_read_only_count", "src_db_instance_id", "connection_string_prefix"},
 			},
 		},
 	})
@@ -2080,9 +2047,6 @@ variable "region_id" {
   default = "cn-beijing"
 }
 
-	data "alicloud_account" "default" {
-	}
-
 data "alicloud_resource_manager_resource_groups" "default" {}
 
 resource "alicloud_vpc" "defaultVpc" {
@@ -2098,15 +2062,6 @@ resource "alicloud_vswitch" "defaultVSwitch" {
   vswitch_name = format("%%s1", var.name)
 }
 
-	data "alicloud_kms_instances" "default" {
-	}
-
-	resource "alicloud_kms_key" "default" {
-  		description            = var.name
-  		status                 = "Enabled"
-  		pending_window_in_days = 7
-        dkms_instance_id       = data.alicloud_kms_instances.default.instances.0.instance_id
-	}
 
 `, name)
 }
@@ -2135,39 +2090,38 @@ func TestAccAliCloudRedisTairInstance_basic8732(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config: testAccConfig(map[string]interface{}{
-					"payment_type":      "PayAsYouGo",
-					"instance_type":     "tair_rdb",
-					"zone_id":           "${var.zone_id}",
-					"instance_class":    "tair.rdb.2g",
-					"shard_count":       "2",
-					"vswitch_id":        "${alicloud_vswitch.defaultVSwitch.id}",
-					"vpc_id":            "${alicloud_vpc.defaultVpc.id}",
-					"resource_group_id": "${data.alicloud_resource_manager_resource_groups.default.ids.0}",
-					"password":          "123456Tf",
-					"engine_version":    "5.0",
-					"period":            "1",
-					"port":              "6379",
-					// Currently, backup_id and src_db_instance_id cannot be CI tested, local testing has passed
-					//"backup_id":          "",
-					//"src_db_instance_id": "",
+					"payment_type":       "PayAsYouGo",
+					"instance_type":      "tair_rdb",
+					"zone_id":            "${var.zone_id}",
+					"instance_class":     "tair.rdb.2g",
+					"shard_count":        "2",
+					"vswitch_id":         "${alicloud_vswitch.defaultVSwitch.id}",
+					"vpc_id":             "${alicloud_vpc.defaultVpc.id}",
+					"resource_group_id":  "${data.alicloud_resource_manager_resource_groups.default.ids.0}",
+					"password":           "123456Tf",
+					"engine_version":     "5.0",
+					"period":             "1",
+					"port":               "6379",
+					"backup_id":          "${var.backup_id}",
+					"src_db_instance_id": "${var.src_db_instance_id}",
 					"tair_instance_name": name,
 				}),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheck(map[string]string{
-						"payment_type":      "PayAsYouGo",
-						"instance_type":     "tair_rdb",
-						"zone_id":           CHECKSET,
-						"instance_class":    "tair.rdb.2g",
-						"shard_count":       "2",
-						"vswitch_id":        CHECKSET,
-						"vpc_id":            CHECKSET,
-						"resource_group_id": CHECKSET,
-						"password":          "123456Tf",
-						"engine_version":    "5.0",
-						"period":            "1",
-						"port":              "6379",
-						//"backup_id":          "",
-						//"src_db_instance_id": "",
+						"payment_type":       "PayAsYouGo",
+						"instance_type":      "tair_rdb",
+						"zone_id":            CHECKSET,
+						"instance_class":     "tair.rdb.2g",
+						"shard_count":        "2",
+						"vswitch_id":         CHECKSET,
+						"vpc_id":             CHECKSET,
+						"resource_group_id":  CHECKSET,
+						"password":           "123456Tf",
+						"engine_version":     "5.0",
+						"period":             "1",
+						"port":               "6379",
+						"backup_id":          CHECKSET,
+						"src_db_instance_id": CHECKSET,
 						"tair_instance_name": name,
 					}),
 				),
@@ -2209,6 +2163,16 @@ variable "zone_id" {
   default = "cn-hangzhou-g"
 }
 
+variable "src_db_instance_id" {
+  default = "r-bp1s7gf8m35b0l6b3f"
+}
+
+variable "backup_id" {
+  default = <<EOF
+2358033331
+EOF
+}
+
 variable "region_id" {
   default = "cn-hangzhou"
 }
@@ -2233,147 +2197,3 @@ resource "alicloud_vswitch" "defaultVSwitch" {
 }
 
 // Test Redis TairInstance. <<< Resource test cases, automatically generated.
-
-func TestUnitRedisTairInstanceCreateRetryLogic(t *testing.T) {
-	type callResult struct {
-		errCode string
-	}
-
-	// buildRetryFunc mirrors the retry closure in resourceAliCloudRedisTairInstanceCreate.
-	// waitFn replaces the real wait() (180s sleep) so tests can count invocations
-	// without actually sleeping.
-	buildRetryFunc := func(results []callResult, waitFn func()) (callCount int, finalErr error) {
-		internalErrRetryCount := 0
-		resource.Retry(1*time.Minute, func() *resource.RetryError {
-			if callCount >= len(results) {
-				return nil
-			}
-			r := results[callCount]
-			callCount++
-
-			if r.errCode == "" {
-				return nil
-			}
-
-			errCode := r.errCode
-			errMsg := r.errCode
-			err := &tea.SDKError{
-				Code:       &errCode,
-				Data:       &errMsg,
-				Message:    &errMsg,
-				StatusCode: tea.Int(400),
-			}
-
-			if (NeedRetry(err) || IsExpectedErrors(err, []string{"InternalError"})) && internalErrRetryCount < 2 {
-				waitFn()
-				internalErrRetryCount++
-				return resource.RetryableError(err)
-			}
-			finalErr = err
-			return resource.NonRetryableError(err)
-		})
-		return
-	}
-
-	// ── InternalError path ──────────────────────────────────────────────────
-
-	t.Run("InternalError succeeds on second attempt: wait called once", func(t *testing.T) {
-		waitCalls := 0
-		callCount, err := buildRetryFunc(
-			[]callResult{{errCode: "InternalError"}, {errCode: ""}},
-			func() { waitCalls++ },
-		)
-		assert.NoError(t, err)
-		assert.Equal(t, 2, callCount)
-		assert.Equal(t, 1, waitCalls, "expected one 180s wait")
-	})
-
-	t.Run("InternalError succeeds on third attempt: wait called twice", func(t *testing.T) {
-		waitCalls := 0
-		callCount, err := buildRetryFunc(
-			[]callResult{{errCode: "InternalError"}, {errCode: "InternalError"}, {errCode: ""}},
-			func() { waitCalls++ },
-		)
-		assert.NoError(t, err)
-		assert.Equal(t, 3, callCount)
-		assert.Equal(t, 2, waitCalls, "expected two 180s waits")
-	})
-
-	t.Run("InternalError exceeds retry limit: wait called twice then returns error", func(t *testing.T) {
-		waitCalls := 0
-		callCount, err := buildRetryFunc(
-			[]callResult{{errCode: "InternalError"}, {errCode: "InternalError"}, {errCode: "InternalError"}},
-			func() { waitCalls++ },
-		)
-		assert.Error(t, err)
-		assert.True(t, IsExpectedErrors(err, []string{"InternalError"}))
-		assert.Equal(t, 3, callCount)
-		assert.Equal(t, 2, waitCalls, "third InternalError hits the counter limit and is returned as non-retryable")
-	})
-
-	// ── NeedRetry path (Throttling etc.) ─────────────────────────────────
-
-	t.Run("Throttling succeeds on third attempt: all retryable errors share the same counter", func(t *testing.T) {
-		waitCalls := 0
-		callCount, err := buildRetryFunc(
-			[]callResult{{errCode: "Throttling"}, {errCode: "Throttling"}, {errCode: ""}},
-			func() { waitCalls++ },
-		)
-		assert.NoError(t, err)
-		assert.Equal(t, 3, callCount)
-		assert.Equal(t, 2, waitCalls)
-	})
-
-	t.Run("Throttling exceeds retry limit: returns error after 3 requests", func(t *testing.T) {
-		waitCalls := 0
-		callCount, err := buildRetryFunc(
-			[]callResult{{errCode: "Throttling"}, {errCode: "Throttling"}, {errCode: "Throttling"}},
-			func() { waitCalls++ },
-		)
-		assert.Error(t, err)
-		assert.Equal(t, 3, callCount)
-		assert.Equal(t, 2, waitCalls, "third Throttling hits the shared counter limit and is returned as non-retryable")
-	})
-
-	// ── Mixed path: InternalError and NeedRetry share one counter ────────
-
-	t.Run("InternalError and Throttling mixed: share the same retry counter, max 3 requests total", func(t *testing.T) {
-		waitCalls := 0
-		callCount, err := buildRetryFunc(
-			[]callResult{
-				{errCode: "Throttling"},
-				{errCode: "InternalError"},
-				{errCode: "Throttling"},
-			},
-			func() { waitCalls++ },
-		)
-		// counter reaches 2 after the second call; third call is non-retryable
-		assert.Error(t, err)
-		assert.Equal(t, 3, callCount)
-		assert.Equal(t, 2, waitCalls)
-	})
-
-	// ── Edge cases ────────────────────────────────────────────────────────
-
-	t.Run("non-retryable error returns immediately without calling wait", func(t *testing.T) {
-		waitCalls := 0
-		callCount, err := buildRetryFunc(
-			[]callResult{{errCode: "InvalidParameter"}},
-			func() { waitCalls++ },
-		)
-		assert.Error(t, err)
-		assert.Equal(t, 1, callCount)
-		assert.Equal(t, 0, waitCalls)
-	})
-
-	t.Run("succeeds on first attempt: wait never called", func(t *testing.T) {
-		waitCalls := 0
-		callCount, err := buildRetryFunc(
-			[]callResult{{errCode: ""}},
-			func() { waitCalls++ },
-		)
-		assert.NoError(t, err)
-		assert.Equal(t, 1, callCount)
-		assert.Equal(t, 0, waitCalls)
-	})
-}

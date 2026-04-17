@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 	"testing"
-	"time"
 
 	"github.com/aliyun/terraform-provider-alicloud/alicloud/connectivity"
 	"github.com/denverdino/aliyungo/cs"
@@ -215,88 +214,6 @@ func TestAccAliCloudCSManagedKubernetes_basic(t *testing.T) {
 						"operation_policy.0.cluster_auto_upgrade.0.channel": "rapid",
 					}),
 				),
-			},
-		},
-	})
-}
-
-func TestAccAliCloudCSManagedKubernetes_encryption(t *testing.T) {
-	var v *cs.KubernetesClusterDetail
-
-	resourceId := "alicloud_cs_managed_kubernetes.default"
-	ra := resourceAttrInit(resourceId, csManagedKubernetesBasicMap)
-
-	serviceFunc := func() interface{} {
-		return &CsService{testAccProvider.Meta().(*connectivity.AliyunClient)}
-	}
-	rc := resourceCheckInit(resourceId, &v, serviceFunc)
-
-	rac := resourceAttrCheckInit(rc, ra)
-
-	testAccCheck := rac.resourceAttrMapUpdateSet()
-	rand := acctest.RandIntRange(1000000, 9999999)
-	name := fmt.Sprintf("tf-testaccmanagedkubernetes-encryption-%d", rand)
-	testAccConfig := resourceTestAccConfigFunc(resourceId, name, resourceCSManagedKubernetesConfigDependence)
-
-	resource.Test(t, resource.TestCase{
-		PreCheck: func() {
-			testAccPreCheck(t)
-			testAccPreCheckWithRegions(t, true, connectivity.ManagedKubernetesSupportedRegions)
-		},
-		IDRefreshName: resourceId,
-		Providers:     testAccProviders,
-		CheckDestroy:  rac.checkResourceDestroy(),
-		Steps: []resource.TestStep{
-			{
-				Config: testAccConfig(map[string]interface{}{
-					"name":                 name,
-					"worker_vswitch_ids":   []string{"${local.vswitch_id}"},
-					"pod_cidr":             "10.93.0.0/16",
-					"service_cidr":         "172.21.0.0/16",
-					"slb_internet_enabled": "true",
-					"cluster_spec":         "ack.pro.small",
-					"deletion_protection":  "false",
-				}),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheck(map[string]string{
-						"name":                 name,
-						"pod_cidr":             "10.93.0.0/16",
-						"service_cidr":         "172.21.0.0/16",
-						"slb_internet_enabled": "true",
-						"cluster_spec":         "ack.pro.small",
-						"deletion_protection":  "false",
-					}),
-				),
-			},
-			{
-				Config: testAccConfig(map[string]interface{}{
-					"encryption_provider_key": "${data.alicloud_kms_keys.default.keys[0].key_id}",
-					"disable_encryption":      "false",
-				}),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheck(map[string]string{
-						"encryption_provider_key": CHECKSET,
-						"disable_encryption":      "false",
-					}),
-				),
-			},
-			{
-				PreConfig: func() { time.Sleep(5 * time.Minute) },
-				Config: testAccConfig(map[string]interface{}{
-					"encryption_provider_key": "",
-					"disable_encryption":      "true",
-				}),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheck(map[string]string{
-						"disable_encryption": "true",
-					}),
-				),
-			},
-			{
-				ResourceName:            resourceId,
-				ImportState:             true,
-				ImportStateVerify:       true,
-				ImportStateVerifyIgnore: []string{"skip_set_certificate_authority", "new_nat_gateway", "user_ca", "name_prefix", "slb_internet_enabled", "api_audiences", "service_account_issuer", "load_balancer_spec", "cluster_ca_cert", "client_key", "client_cert", "worker_vswitch_ids"},
 			},
 		},
 	})
@@ -630,8 +547,6 @@ func TestAccAliCloudCSManagedKubernetesAuto(t *testing.T) {
 						},
 					},
 					"skip_set_certificate_authority": "false",
-					"control_plane_log_ttl":          "30",
-					"control_plane_log_components":   []string{"apiserver", "kcm", "scheduler"},
 				}),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheck(map[string]string{
@@ -652,10 +567,6 @@ func TestAccAliCloudCSManagedKubernetesAuto(t *testing.T) {
 						"maintenance_window.0.maintenance_time": "2024-10-15T12:31:00.000+08:00",
 						"maintenance_window.0.duration":         "3h",
 						"maintenance_window.0.weekly_period":    "Thursday",
-						"control_plane_log_ttl":                 "30",
-						"control_plane_log_components.0":        "apiserver",
-						"control_plane_log_components.1":        "kcm",
-						"control_plane_log_components.2":        "scheduler",
 					}),
 				),
 			},
@@ -883,10 +794,6 @@ locals {
 resource "alicloud_security_group" "default" {
   count  = 2
   vpc_id = alicloud_vpc.vpc.0.id
-}
-
-data "alicloud_kms_keys" "default" {
-  filters = "[{\"Key\":\"KeyState\",\"Values\":[\"Enabled\"]},{\"Key\":\"KeySpec\",\"Values\":[\"Aliyun_AES_256\"]},{\"Key\":\"KeyUsage\",\"Values\":[\"ENCRYPT/DECRYPT\"]},{\"Key\":\"CreatorType\",\"Values\":[\"User\"]}]"
 }
 `, name)
 }
@@ -1152,75 +1059,6 @@ variable "cluster_type" {
 
 
 `, name)
-}
-
-func Test_versionCompare(t *testing.T) {
-	tests := []struct {
-		name           string
-		oldVersion     string
-		newVersion     string
-		expectedResult int
-		expectError    bool
-	}{
-		// basic semver
-		{name: "equal versions", oldVersion: "1.2.3", newVersion: "1.2.3", expectedResult: 0},
-		{name: "new version newer patch", oldVersion: "1.2.3", newVersion: "1.2.4", expectedResult: 1},
-		{name: "new version older patch", oldVersion: "1.2.4", newVersion: "1.2.3", expectedResult: -1},
-		{name: "new version newer minor", oldVersion: "1.2.3", newVersion: "1.3.0", expectedResult: 1},
-		{name: "new version older minor", oldVersion: "1.3.0", newVersion: "1.2.3", expectedResult: -1},
-		{name: "new version newer major", oldVersion: "1.2.3", newVersion: "2.0.0", expectedResult: 1},
-		{name: "new version older major", oldVersion: "2.0.0", newVersion: "1.2.3", expectedResult: -1},
-
-		// v prefix
-		{name: "v prefix both", oldVersion: "v1.2.3", newVersion: "v1.2.4", expectedResult: 1},
-		{name: "v prefix old only", oldVersion: "v1.2.3", newVersion: "1.2.4", expectedResult: 1},
-		{name: "v prefix new only", oldVersion: "1.2.3", newVersion: "v1.2.4", expectedResult: 1},
-		{name: "v prefix equal", oldVersion: "v1.2.3", newVersion: "v1.2.3", expectedResult: 0},
-
-		// pre-release suffix (per semver: release > pre-release, e.g. 1.2.3 > 1.2.3-alpha.1)
-		{name: "release vs pre-release", oldVersion: "1.2.3-alpha.1", newVersion: "1.2.3", expectedResult: 1},
-		{name: "pre-release vs release", oldVersion: "1.2.3", newVersion: "1.2.3-alpha.1", expectedResult: -1},
-		{name: "pre-release equal", oldVersion: "1.2.3-alpha.1", newVersion: "1.2.3-alpha.1", expectedResult: 0},
-		{name: "pre-release numeric diff", oldVersion: "1.2.3-alpha.1", newVersion: "1.2.3-alpha.2", expectedResult: 1},
-		{name: "pre-release string diff", oldVersion: "1.2.3-alpha.1", newVersion: "1.2.3-beta.1", expectedResult: 1},
-		{name: "pre-release with aliyun", oldVersion: "1.9.3-aliyun.1", newVersion: "1.9.7-aliyun.2", expectedResult: 1},
-		{name: "pre-release newer major version", oldVersion: "1.9.3-aliyun.1", newVersion: "2.0.0-aliyun.1", expectedResult: 1},
-
-		// apsara format
-		{name: "apsara same main version, suffix newer", oldVersion: "v1.31.0-apsara.6.11.6.ad796663", newVersion: "v1.31.0-apsara.6.11.7.17d202a9", expectedResult: 1},
-		{name: "apsara same main version, suffix older", oldVersion: "v1.31.0-apsara.6.11.7.17d202a9", newVersion: "v1.31.0-apsara.6.11.6.ad796663", expectedResult: -1},
-		{name: "apsara same numeric suffix, diff commit hash", oldVersion: "v1.31.0-apsara.6.11.6.ad796663", newVersion: "v1.31.0-apsara.6.11.6.bf123456", expectedResult: 1},
-		{name: "apsara different main version", oldVersion: "v1.30.0-apsara.6.11.6.ad796663", newVersion: "v1.31.0-apsara.6.11.6.ad796663", expectedResult: 1},
-
-		// empty versions
-		{name: "both empty", oldVersion: "", newVersion: "", expectedResult: 0},
-		{name: "old empty", oldVersion: "", newVersion: "1.2.3", expectedResult: 1},
-		{name: "new empty", oldVersion: "1.2.3", newVersion: "", expectedResult: -1},
-
-		// invalid format
-		{name: "invalid old version", oldVersion: "latest", newVersion: "1.2.3", expectError: true},
-		{name: "invalid new version", oldVersion: "1.2.3", newVersion: "latest", expectError: true},
-		{name: "both invalid", oldVersion: "abc", newVersion: "xyz", expectError: true},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			result, err := versionCompare(tt.oldVersion, tt.newVersion)
-			if tt.expectError {
-				if err == nil {
-					t.Errorf("expected error but got nil, result=%d", result)
-				}
-				return
-			}
-			if err != nil {
-				t.Errorf("unexpected error: %v", err)
-				return
-			}
-			if result != tt.expectedResult {
-				t.Errorf("versionCompare(%q, %q) = %d, want %d", tt.oldVersion, tt.newVersion, result, tt.expectedResult)
-			}
-		})
-	}
 }
 
 // Test Ack Cluster. <<< Resource test cases, automatically generated.

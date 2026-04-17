@@ -14,13 +14,17 @@ Manages an asynchronous invocation configuration for a FC Function or Alias.
 
 -> **NOTE:** Available since v1.100.0.
 
--> **DEPRECATED:** This resource (alicloud_fc_function_async_invoke_config) represents the legacy Function Compute API. For new deployments and advanced features, please use the `alicloud_fcv3_async_invoke_config` resource which provides access to the latest FCV3 capabilities. The legacy FC async invoke config supports only basic functionality and does not include newer features available in FCV3.
-
 ## Example Usage
 
 ### Destination Configuration
 
 -> **NOTE** Ensure the FC Function RAM Role has necessary permissions for the destination, such as `mns:SendMessage`, `mns:PublishMessage` or `fc:InvokeFunction`, otherwise the API will return a generic error.
+
+<div style="display: block;margin-bottom: 40px;"><div class="oics-button" style="float: right;position: absolute;margin-bottom: 10px;">
+  <a href="https://api.aliyun.com/terraform?resource=alicloud_fc_function_async_invoke_config&exampleId=c9b2eee5-8400-74ab-91c2-a98ed4b9ece56b26feec&activeTab=example&spm=docs.r.fc_function_async_invoke_config.0.c9b2eee584&intl_lang=EN_US" target="_blank">
+    <img alt="Open in AliCloud" src="https://img.alicdn.com/imgextra/i1/O1CN01hjjqXv1uYUlY56FyX_!!6000000006049-55-tps-254-36.svg" style="max-height: 44px; max-width: 100%;">
+  </a>
+</div></div>
 
 ```terraform
 provider "alicloud" {

@@ -129,12 +129,6 @@ func resourceAliCloudNlbServerGroup() *schema.Resource {
 							Computed:     true,
 							ValidateFunc: StringInSlice([]string{"TCP", "HTTP", "UDP"}, false),
 						},
-						"health_check_http_version": {
-							Type:         schema.TypeString,
-							Optional:     true,
-							Computed:     true,
-							ValidateFunc: StringInSlice([]string{"HTTP1.0", "HTTP1.1"}, false),
-						},
 					},
 				},
 			},
@@ -297,10 +291,6 @@ func resourceAliCloudNlbServerGroupCreate(d *schema.ResourceData, meta interface
 		if healthCheckExp1 != nil && healthCheckExp1 != "" {
 			objectDataLocalMap["HealthCheckExp"] = healthCheckExp1
 		}
-		healthCheckHttpVersion1, _ := jsonpath.Get("$[0].health_check_http_version", v)
-		if healthCheckHttpVersion1 != nil && healthCheckHttpVersion1 != "" {
-			objectDataLocalMap["HealthCheckHttpVersion"] = healthCheckHttpVersion1
-		}
 
 		request["HealthCheckConfig"] = objectDataLocalMap
 	}
@@ -385,7 +375,6 @@ func resourceAliCloudNlbServerGroupRead(d *schema.ResourceData, meta interface{}
 		healthCheckMap["healthy_threshold"] = healthCheckRaw["HealthyThreshold"]
 		healthCheckMap["http_check_method"] = healthCheckRaw["HttpCheckMethod"]
 		healthCheckMap["unhealthy_threshold"] = healthCheckRaw["UnhealthyThreshold"]
-		healthCheckMap["health_check_http_version"] = healthCheckRaw["HealthCheckHttpVersion"]
 
 		healthCheckHttpCodeRaw := make([]interface{}, 0)
 		if healthCheckRaw["HealthCheckHttpCode"] != nil {
@@ -501,10 +490,6 @@ func resourceAliCloudNlbServerGroupUpdate(d *schema.ResourceData, meta interface
 			healthCheckExp1, _ := jsonpath.Get("$[0].health_check_exp", v)
 			if healthCheckExp1 != nil && (d.HasChange("health_check.0.health_check_exp") || healthCheckExp1 != "") {
 				objectDataLocalMap["HealthCheckExp"] = healthCheckExp1
-			}
-			healthCheckHttpVersion1, _ := jsonpath.Get("$[0].health_check_http_version", v)
-			if healthCheckHttpVersion1 != nil && (d.HasChange("health_check.0.health_check_http_version") || healthCheckHttpVersion1 != "") {
-				objectDataLocalMap["HealthCheckHttpVersion"] = healthCheckHttpVersion1
 			}
 
 			request["HealthCheckConfig"] = objectDataLocalMap

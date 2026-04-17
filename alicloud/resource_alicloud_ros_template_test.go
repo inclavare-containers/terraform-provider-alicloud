@@ -59,6 +59,7 @@ func testSweepRosTemplate(region string) error {
 		if err != nil {
 			return WrapErrorf(err, FailedGetAttributeMsg, action, "$.Templates", response)
 		}
+		sweeped := false
 		result, _ := resp.([]interface{})
 		for _, v := range result {
 			item := v.(map[string]interface{})
@@ -72,6 +73,7 @@ func testSweepRosTemplate(region string) error {
 				log.Printf("[INFO] Skipping Ros Template: %s", item["TemplateName"].(string))
 				continue
 			}
+			sweeped = true
 			action = "DeleteTemplate"
 			request := map[string]interface{}{
 				"TemplateId": item["TemplateId"],
@@ -80,9 +82,10 @@ func testSweepRosTemplate(region string) error {
 			if err != nil {
 				log.Printf("[ERROR] Failed to delete Ros Template (%s): %s", item["TemplateName"].(string), err)
 			}
-			// Waiting 5 seconds to ensure Ros Template have been deleted.
-			time.Sleep(5 * time.Second)
-
+			if sweeped {
+				// Waiting 5 seconds to ensure Ros Template have been deleted.
+				time.Sleep(5 * time.Second)
+			}
 			log.Printf("[INFO] Delete Ros Template success: %s ", item["TemplateName"].(string))
 		}
 		if len(result) < PageSizeLarge {

@@ -14,7 +14,7 @@ import (
 func TestAccAliCloudESACacheRuleresource_cacherule_test(t *testing.T) {
 	var v map[string]interface{}
 	resourceId := "alicloud_esa_cache_rule.default"
-	ra := resourceAttrInit(resourceId, AliCloudesacacheruleresourceCacheruleTestmap)
+	ra := resourceAttrInit(resourceId, AliCloudESACacheRuleresource_cacherule_testMap)
 	rc := resourceCheckInitWithDescribeMethod(resourceId, &v, func() interface{} {
 		return &EsaServiceV2{testAccProvider.Meta().(*connectivity.AliyunClient)}
 	}, "DescribeEsaCacheRule")
@@ -23,7 +23,7 @@ func TestAccAliCloudESACacheRuleresource_cacherule_test(t *testing.T) {
 	rand := acctest.RandIntRange(10000, 99999)
 	name := fmt.Sprintf("tf-testacc%sESACacheRule%d", defaultRegionToTest, rand)
 
-	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AliCloudesacacheruleresourceCacheruleTestbasicdependence)
+	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AliCloudESACacheRuleresource_cacherule_testBasicDependence)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			testAccPreCheck(t)
@@ -62,33 +62,7 @@ func TestAccAliCloudESACacheRuleresource_cacherule_test(t *testing.T) {
 					"include_header":              "example",
 				}),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheck(map[string]string{
-						"edge_cache_ttl":              "300",
-						"site_id":                     CHECKSET,
-						"edge_cache_mode":             "follow_origin",
-						"edge_status_code_cache_ttl":  "300",
-						"browser_cache_mode":          "no_cache",
-						"user_geo":                    "off",
-						"browser_cache_ttl":           "300",
-						"include_cookie":              "cookie_exapmle",
-						"rule_name":                   "rule_example",
-						"rule_enable":                 "off",
-						"query_string_mode":           "ignore_all",
-						"query_string":                "example",
-						"bypass_cache":                "cache_all",
-						"check_presence_header":       "headername",
-						"sort_query_string_for_cache": "off",
-						"check_presence_cookie":       "cookiename",
-						"user_device_type":            "off",
-						"cache_reserve_eligibility":   "bypass_cache_reserve",
-						"additional_cacheable_ports":  "2053",
-						"rule":                        CHECKSET,
-						"user_language":               "off",
-						"serve_stale":                 "off",
-						"cache_deception_armor":       "off",
-						"site_version":                "0",
-						"include_header":              "example",
-					}),
+					testAccCheck(map[string]string{}),
 				),
 			},
 			{
@@ -322,33 +296,9 @@ func TestAccAliCloudESACacheRuleresource_cacherule_test(t *testing.T) {
 				),
 			},
 			{
-				Config: testAccConfig(map[string]interface{}{
-					"post_body_cache_key": "md5",
-				}),
+				Config: testAccConfig(map[string]interface{}{}),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheck(map[string]string{
-						"post_body_cache_key": "md5",
-					}),
-				),
-			},
-			{
-				Config: testAccConfig(map[string]interface{}{
-					"post_body_size_limit": "8",
-				}),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheck(map[string]string{
-						"post_body_size_limit": "8",
-					}),
-				),
-			},
-			{
-				Config: testAccConfig(map[string]interface{}{
-					"post_cache": "on",
-				}),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheck(map[string]string{
-						"post_cache": "on",
-					}),
+					testAccCheck(map[string]string{}),
 				),
 			},
 			{
@@ -361,11 +311,11 @@ func TestAccAliCloudESACacheRuleresource_cacherule_test(t *testing.T) {
 	})
 }
 
-var AliCloudesacacheruleresourceCacheruleTestmap = map[string]string{
+var AliCloudESACacheRuleresource_cacherule_testMap = map[string]string{
 	"id": CHECKSET,
 }
 
-func AliCloudesacacheruleresourceCacheruleTestbasicdependence(name string) string {
+func AliCloudESACacheRuleresource_cacherule_testBasicDependence(name string) string {
 	return fmt.Sprintf(`
 variable "name" {
     default = "%s"
@@ -385,7 +335,7 @@ data "alicloud_esa_sites" "default" {
 func TestAccAliCloudEsaCacheRule_basic12002(t *testing.T) {
 	var v map[string]interface{}
 	resourceId := "alicloud_esa_cache_rule.default"
-	ra := resourceAttrInit(resourceId, AliCloudEsaCacheRuleMap12002)
+	ra := resourceAttrInit(resourceId, AlicloudEsaCacheRuleMap12002)
 	rc := resourceCheckInitWithDescribeMethod(resourceId, &v, func() interface{} {
 		return &EsaServiceV2{testAccProvider.Meta().(*connectivity.AliyunClient)}
 	}, "DescribeEsaCacheRule")
@@ -393,7 +343,7 @@ func TestAccAliCloudEsaCacheRule_basic12002(t *testing.T) {
 	testAccCheck := rac.resourceAttrMapUpdateSet()
 	rand := acctest.RandIntRange(10000, 99999)
 	name := fmt.Sprintf("tfaccesa%d", rand)
-	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AliCloudEsaCacheRuleBasicDependence12002)
+	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AlicloudEsaCacheRuleBasicDependence12002)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			testAccPreCheck(t)
@@ -429,9 +379,6 @@ func TestAccAliCloudEsaCacheRule_basic12002(t *testing.T) {
 					"cache_deception_armor":       "off",
 					"site_version":                "0",
 					"include_header":              "example",
-					"post_body_cache_key":         "md5",
-					"post_body_size_limit":        "8",
-					"post_cache":                  "on",
 				}),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheck(map[string]string{
@@ -460,9 +407,6 @@ func TestAccAliCloudEsaCacheRule_basic12002(t *testing.T) {
 						"cache_deception_armor":       "off",
 						"site_version":                "0",
 						"include_header":              "example",
-						"post_body_cache_key":         "md5",
-						"post_body_size_limit":        "8",
-						"post_cache":                  "on",
 					}),
 				),
 			},
@@ -530,11 +474,11 @@ func TestAccAliCloudEsaCacheRule_basic12002(t *testing.T) {
 	})
 }
 
-var AliCloudEsaCacheRuleMap12002 = map[string]string{
+var AlicloudEsaCacheRuleMap12002 = map[string]string{
 	"cache_rule_id": CHECKSET,
 }
 
-func AliCloudEsaCacheRuleBasicDependence12002(name string) string {
+func AlicloudEsaCacheRuleBasicDependence12002(name string) string {
 	return fmt.Sprintf(`
 variable "name" {
     default = "%s"

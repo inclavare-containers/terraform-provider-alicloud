@@ -88,18 +88,6 @@ func resourceAliCloudEsaCacheRule() *schema.Resource {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
-			"post_body_cache_key": {
-				Type:     schema.TypeString,
-				Optional: true,
-			},
-			"post_body_size_limit": {
-				Type:     schema.TypeString,
-				Optional: true,
-			},
-			"post_cache": {
-				Type:     schema.TypeString,
-				Optional: true,
-			},
 			"query_string": {
 				Type:     schema.TypeString,
 				Optional: true,
@@ -192,9 +180,6 @@ func resourceAliCloudEsaCacheRuleCreate(d *schema.ResourceData, meta interface{}
 	if v, ok := d.GetOkExists("site_version"); ok {
 		request["SiteVersion"] = v
 	}
-	if v, ok := d.GetOk("post_cache"); ok {
-		request["PostCache"] = v
-	}
 	if v, ok := d.GetOk("query_string_mode"); ok {
 		request["QueryStringMode"] = v
 	}
@@ -234,17 +219,11 @@ func resourceAliCloudEsaCacheRuleCreate(d *schema.ResourceData, meta interface{}
 	if v, ok := d.GetOk("rule_enable"); ok {
 		request["RuleEnable"] = v
 	}
-	if v, ok := d.GetOk("post_body_size_limit"); ok {
-		request["PostBodySizeLimit"] = v
-	}
 	if v, ok := d.GetOk("rule_name"); ok {
 		request["RuleName"] = v
 	}
 	if v, ok := d.GetOk("browser_cache_ttl"); ok {
 		request["BrowserCacheTtl"] = v
-	}
-	if v, ok := d.GetOk("post_body_cache_key"); ok {
-		request["PostBodyCacheKey"] = v
 	}
 	if v, ok := d.GetOk("cache_reserve_eligibility"); ok {
 		request["CacheReserveEligibility"] = v
@@ -264,11 +243,11 @@ func resourceAliCloudEsaCacheRuleCreate(d *schema.ResourceData, meta interface{}
 	if v, ok := d.GetOk("browser_cache_mode"); ok {
 		request["BrowserCacheMode"] = v
 	}
-	wait := incrementalWait(5*time.Second, 3*time.Second)
+	wait := incrementalWait(3*time.Second, 5*time.Second)
 	err = resource.Retry(d.Timeout(schema.TimeoutCreate), func() *resource.RetryError {
 		response, err = client.RpcPost("ESA", "2024-09-10", action, query, request, true)
 		if err != nil {
-			if IsExpectedErrors(err, []string{"Site.ServiceBusy", "TooManyRequests", "LockFailed"}) || NeedRetry(err) {
+			if IsExpectedErrors(err, []string{"LockFailed"}) || NeedRetry(err) {
 				wait()
 				return resource.RetryableError(err)
 			}
@@ -314,9 +293,6 @@ func resourceAliCloudEsaCacheRuleRead(d *schema.ResourceData, meta interface{}) 
 	d.Set("edge_status_code_cache_ttl", objectRaw["EdgeStatusCodeCacheTtl"])
 	d.Set("include_cookie", objectRaw["IncludeCookie"])
 	d.Set("include_header", objectRaw["IncludeHeader"])
-	d.Set("post_body_cache_key", objectRaw["PostBodyCacheKey"])
-	d.Set("post_body_size_limit", objectRaw["PostBodySizeLimit"])
-	d.Set("post_cache", objectRaw["PostCache"])
 	d.Set("query_string", objectRaw["QueryString"])
 	d.Set("query_string_mode", objectRaw["QueryStringMode"])
 	d.Set("rule", objectRaw["Rule"])
@@ -365,11 +341,6 @@ func resourceAliCloudEsaCacheRuleUpdate(d *schema.ResourceData, meta interface{}
 	if d.HasChange("additional_cacheable_ports") {
 		update = true
 		request["AdditionalCacheablePorts"] = d.Get("additional_cacheable_ports")
-	}
-
-	if d.HasChange("post_cache") {
-		update = true
-		request["PostCache"] = d.Get("post_cache")
 	}
 
 	if d.HasChange("query_string_mode") {
@@ -437,11 +408,6 @@ func resourceAliCloudEsaCacheRuleUpdate(d *schema.ResourceData, meta interface{}
 		request["RuleEnable"] = d.Get("rule_enable")
 	}
 
-	if d.HasChange("post_body_size_limit") {
-		update = true
-		request["PostBodySizeLimit"] = d.Get("post_body_size_limit")
-	}
-
 	if d.HasChange("rule_name") {
 		update = true
 		request["RuleName"] = d.Get("rule_name")
@@ -472,11 +438,6 @@ func resourceAliCloudEsaCacheRuleUpdate(d *schema.ResourceData, meta interface{}
 		request["EdgeStatusCodeCacheTtl"] = d.Get("edge_status_code_cache_ttl")
 	}
 
-	if d.HasChange("post_body_cache_key") {
-		update = true
-		request["PostBodyCacheKey"] = d.Get("post_body_cache_key")
-	}
-
 	if d.HasChange("user_language") {
 		update = true
 		request["UserLanguage"] = d.Get("user_language")
@@ -488,11 +449,11 @@ func resourceAliCloudEsaCacheRuleUpdate(d *schema.ResourceData, meta interface{}
 	}
 
 	if update {
-		wait := incrementalWait(5*time.Second, 3*time.Second)
+		wait := incrementalWait(3*time.Second, 5*time.Second)
 		err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
 			response, err = client.RpcPost("ESA", "2024-09-10", action, query, request, true)
 			if err != nil {
-				if IsExpectedErrors(err, []string{"Site.ServiceBusy", "TooManyRequests", "LockFailed"}) || NeedRetry(err) {
+				if NeedRetry(err) {
 					wait()
 					return resource.RetryableError(err)
 				}
@@ -522,11 +483,11 @@ func resourceAliCloudEsaCacheRuleDelete(d *schema.ResourceData, meta interface{}
 	request["ConfigId"] = parts[1]
 	request["SiteId"] = parts[0]
 
-	wait := incrementalWait(5*time.Second, 3*time.Second)
+	wait := incrementalWait(3*time.Second, 5*time.Second)
 	err = resource.Retry(d.Timeout(schema.TimeoutDelete), func() *resource.RetryError {
 		response, err = client.RpcPost("ESA", "2024-09-10", action, query, request, true)
 		if err != nil {
-			if IsExpectedErrors(err, []string{"Site.ServiceBusy", "TooManyRequests"}) || NeedRetry(err) {
+			if NeedRetry(err) {
 				wait()
 				return resource.RetryableError(err)
 			}

@@ -172,7 +172,6 @@ func TestAccAliCloudNlbServerGroup_basic0(t *testing.T) {
 							"health_check_domain":          "tf-testAcc.com",
 							"health_check_http_code":       []string{"http_2xx", "http_3xx", "http_4xx"},
 							"health_check_type":            "HTTP",
-							"health_check_http_version":    "HTTP1.0",
 						},
 					},
 				}),
@@ -211,39 +210,12 @@ func TestAccAliCloudNlbServerGroup_basic0(t *testing.T) {
 							"health_check_domain":          "tf-testAcc.com",
 							"health_check_http_code":       []string{"http_2xx", "http_3xx", "http_4xx"},
 							"health_check_type":            "HTTP",
-							"health_check_http_version":    "HTTP1.0",
 						},
 					},
 				}),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheck(map[string]string{
 						"health_check.#": "1",
-					}),
-				),
-			},
-			{
-				Config: testAccConfig(map[string]interface{}{
-					"health_check": []map[string]interface{}{
-						{
-							"health_check_interval":        "2",
-							"health_check_url":             "/tf-testAcc",
-							"unhealthy_threshold":          "3",
-							"health_check_connect_timeout": "1",
-							"health_check_enabled":         "true",
-							"health_check_connect_port":    "46325",
-							"healthy_threshold":            "3",
-							"http_check_method":            "HEAD",
-							"health_check_domain":          "tf-testAcc.com",
-							"health_check_http_code":       []string{"http_2xx", "http_3xx", "http_4xx"},
-							"health_check_type":            "HTTP",
-							"health_check_http_version":    "HTTP1.1",
-						},
-					},
-				}),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheck(map[string]string{
-						"health_check.#":                           "1",
-						"health_check.0.health_check_http_version": "HTTP1.1",
 					}),
 				),
 			},
@@ -377,7 +349,6 @@ func TestAccAliCloudNlbServerGroup_basic0_twin(t *testing.T) {
 							"health_check_domain":          "tf-testAcc.com",
 							"health_check_http_code":       []string{"http_2xx", "http_3xx", "http_4xx"},
 							"health_check_type":            "HTTP",
-							"health_check_http_version":    "HTTP1.0",
 						},
 					},
 					"preserve_client_ip_enabled": "false",
@@ -434,7 +405,7 @@ var AliCloudNLBServerGroupMap0 = map[string]string{
 }
 
 func AliCloudNLBServerGroupBasicDependence0(name string) string {
-	return fmt.Sprintf(`
+	return fmt.Sprintf(` 
 variable "name" {
   default = "%s"
 }
@@ -657,7 +628,6 @@ func TestUnitAccAliCloudNlbServerGroup(t *testing.T) {
 					"HealthCheckUrl":            "CreateNlbServerGroupValue",
 					"HealthCheckHttpCode":       []string{"CreateNlbServerGroupValue"},
 					"HttpCheckMethod":           "CreateNlbServerGroupValue",
-					"HealthCheckHttpVersion":    "CreateNlbServerGroupValue",
 				},
 				"ConnectionDrainEnabled":  true,
 				"ConnectionDrainTimeout":  60,
@@ -793,7 +763,6 @@ func TestUnitAccAliCloudNlbServerGroup(t *testing.T) {
 					"HealthCheckUrl":            "UpdateNlbServerGroupValue",
 					"HealthCheckHttpCode":       []string{"UpdateNlbServerGroupValue"},
 					"HttpCheckMethod":           "UpdateNlbServerGroupValue",
-					"HealthCheckHttpVersion":    "UpdateNlbServerGroupValue",
 				},
 			},
 		},
@@ -1306,8 +1275,7 @@ func TestAccAliCloudNlbServerGroup_basic4668(t *testing.T) {
 							"health_check_url":             "/rdk",
 							"health_check_http_code": []string{
 								"http_2xx", "http_3xx", "http_4xx"},
-							"http_check_method":         "HEAD",
-							"health_check_http_version": "HTTP1.0",
+							"http_check_method": "HEAD",
 						},
 					},
 					"scheduler":                "Qch",
@@ -2187,8 +2155,7 @@ func TestAccAliCloudNlbServerGroup_basic5353(t *testing.T) {
 							"health_check_url":             "/rdktest",
 							"health_check_http_code": []string{
 								"http_2xx"},
-							"http_check_method":         "HEAD",
-							"health_check_http_version": "HTTP1.0",
+							"http_check_method": "HEAD",
 						},
 					},
 					"connection_drain_timeout": "10",
@@ -2386,8 +2353,7 @@ func TestAccAliCloudNlbServerGroup_basic4668_twin(t *testing.T) {
 							"health_check_url":             "/rdk",
 							"health_check_http_code": []string{
 								"http_2xx", "http_3xx", "http_4xx"},
-							"http_check_method":         "HEAD",
-							"health_check_http_version": "HTTP1.0",
+							"http_check_method": "HEAD",
 						},
 					},
 					"scheduler":                "Qch",
@@ -2467,8 +2433,7 @@ func TestAccAliCloudNlbServerGroup_basic4639_twin(t *testing.T) {
 							"health_check_url":             "/rdk",
 							"health_check_http_code": []string{
 								"http_2xx", "http_3xx", "http_4xx"},
-							"http_check_method":         "HEAD",
-							"health_check_http_version": "HTTP1.0",
+							"http_check_method": "HEAD",
 						},
 					},
 					"scheduler":                "Tch",
@@ -2547,8 +2512,7 @@ func TestAccAliCloudNlbServerGroup_basic4662_twin(t *testing.T) {
 							"health_check_url":             "/rdk",
 							"health_check_http_code": []string{
 								"http_2xx", "http_3xx", "http_4xx"},
-							"http_check_method":         "HEAD",
-							"health_check_http_version": "HTTP1.0",
+							"http_check_method": "HEAD",
 						},
 					},
 					"scheduler":                "Wrr",

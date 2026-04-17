@@ -53,6 +53,7 @@ func testSweepOosExecution(region string) error {
 		if err != nil {
 			return WrapErrorf(err, FailedGetAttributeMsg, action, "$.Executions", response)
 		}
+		sweeped := false
 		result, _ := resp.([]interface{})
 		for _, v := range result {
 			item := v.(map[string]interface{})
@@ -67,6 +68,7 @@ func testSweepOosExecution(region string) error {
 				log.Printf("[INFO] Skipping OOS Execution: %s", item["ExecutionId"].(string))
 				continue
 			}
+			sweeped = true
 			action = "DeleteExecutions"
 			request := map[string]interface{}{
 				"ExecutionIds": convertListToJsonString(convertListStringToListInterface([]string{item["ExecutionId"].(string)})),
@@ -75,8 +77,10 @@ func testSweepOosExecution(region string) error {
 			if err != nil {
 				log.Printf("[ERROR] Failed to delete OOS Execution (%s): %s", item["ExecutionId"].(string), err)
 			}
-			// Waiting 5 seconds to ensure OOS Execution have been deleted.
-			time.Sleep(5 * time.Second)
+			if sweeped {
+				// Waiting 5 seconds to ensure OOS Execution have been deleted.
+				time.Sleep(5 * time.Second)
+			}
 			log.Printf("[INFO] Delete OOS Execution success: %s ", item["ExecutionId"].(string))
 		}
 		if nextToken, ok := response["NextToken"].(string); ok && nextToken != "" {

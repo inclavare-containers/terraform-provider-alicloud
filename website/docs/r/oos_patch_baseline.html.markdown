@@ -3,16 +3,14 @@ subcategory: "Operation Orchestration Service (OOS)"
 layout: "alicloud"
 page_title: "Alicloud: alicloud_oos_patch_baseline"
 description: |-
-  Provides a Alicloud Operation Orchestration Service (OOS) Patch Baseline resource.
+  Provides a Alicloud OOS Patch Baseline resource.
 ---
 
 # alicloud_oos_patch_baseline
 
-Provides a Operation Orchestration Service (OOS) Patch Baseline resource.
+Provides a OOS Patch Baseline resource. 
 
-
-
-For information about Operation Orchestration Service (OOS) Patch Baseline and how to use it, see [What is Patch Baseline](https://www.alibabacloud.com/help/en/operation-orchestration-service/latest/patch-manager-overview).
+For information about OOS Patch Baseline and how to use it, see [What is Patch Baseline](https://www.alibabacloud.com/help/en/operation-orchestration-service/latest/patch-manager-overview).
 
 -> **NOTE:** Available since v1.146.0.
 
@@ -39,39 +37,27 @@ resource "alicloud_oos_patch_baseline" "default" {
 }
 ```
 
-
 📚 Need more examples? [VIEW MORE EXAMPLES](https://api.aliyun.com/terraform?activeTab=sample&source=Sample&sourcePath=OfficialSample:alicloud_oos_patch_baseline&spm=docs.r.oos_patch_baseline.example&intl_lang=EN_US)
 
 ## Argument Reference
 
 The following arguments are supported:
-* `approval_rules` - (Required) This value follows the json format. For more details, see the description of [ApprovalRules in the Request parameters table for details](https://www.alibabacloud.com/help/zh/operation-orchestration-service/latest/api-oos-2019-06-01-createpatchbaseline).
-* `approved_patches` - (Optional, List, Available since v1.219.0) List of approved patches.
-* `approved_patches_enable_non_security` - (Optional, Available since v1.219.0) Specifies whether approved patches include updates other than security updates.
-* `description` - (Optional) Description of the patch baseline.
-* `operation_system` - (Required, ForceNew) Operating system type. Supported values:
-  - Windows
-  - Ubuntu
-  - CentOS
-  - Debian
-  - AliyunLinux
-  - RedhatEnterpriseLinux
-  - Anolis
-  - Fedora
-  - Suse
-  - RockyLinux
-  - AlmaLinux.
-* `patch_baseline_name` - (Required, ForceNew) Patch baseline name.
-* `rejected_patches` - (Optional, List, Available since v1.210.0) List of rejected patches.
-* `rejected_patches_action` - (Optional, Computed, Available since v1.210.0) Rejected patches action. Valid values: `ALLOW_AS_DEPENDENCY`, `BLOCK`.
-* `resource_group_id` - (Optional, Computed, Available since v1.219.0) Resource group ID.
-* `sources` - (Optional, List, Available since v1.219.0) List of patch source configurations.
-* `tags` - (Optional, Map) A key-value map of tags. The number of key-value pairs must be between 1 and 20.
+* `approval_rules` - (Required) Accept the rules. This value follows the json format. For more details, see the description of [ApprovalRules in the Request parameters table for details](https://www.alibabacloud.com/help/zh/operation-orchestration-service/latest/api-oos-2019-06-01-createpatchbaseline).
+* `approved_patches` - (Optional, Available since v1.219.0) Approved Patch.
+* `approved_patches_enable_non_security` - (Optional, Available since v1.219.0) ApprovedPatchesEnableNonSecurity.
+* `description` - (Optional) Patches baseline description information.
+* `operation_system` - (Required, ForceNew) Operating system type. Valid values: `AliyunLinux`, `Anolis`, `CentOS`, `Debian`, `RedhatEnterpriseLinux`, `Ubuntu`, `Windows`, `AlmaLinux`.
+* `patch_baseline_name` - (Required, ForceNew) The name of the patch baseline.
+* `rejected_patches` - (Optional, Available since v1.210.0) Reject patches.
+* `rejected_patches_action` - (Optional, Available since v1.210.0) Rejected patches action. Valid values: `ALLOW_AS_DEPENDENCY`, `BLOCK`.
+* `resource_group_id` - (Optional, Computed, Available since v1.219.0) The ID of the resource group.
+* `sources` - (Optional, Available since v1.219.0) Source.
+* `tags` - (Optional, Map, Available since v1.219.0) Label.
 
 ## Attributes Reference
 
 The following attributes are exported:
-* `id` - The ID of the resource supplied above. 
+* `id` - The ID of the resource supplied above.
 * `create_time` - Creation time.
 
 ## Timeouts
@@ -83,8 +69,8 @@ The `timeouts` block allows you to specify [timeouts](https://developer.hashicor
 
 ## Import
 
-Operation Orchestration Service (OOS) Patch Baseline can be imported using the id, e.g.
+OOS Patch Baseline can be imported using the id, e.g.
 
 ```shell
-$ terraform import alicloud_oos_patch_baseline.example <patch_baseline_name>
+$ terraform import alicloud_oos_patch_baseline.example <id>
 ```

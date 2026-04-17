@@ -12,10 +12,18 @@ jobs:
     permissions:
       contents: read
     steps:
-      - uses: jitterbit/get-changed-files@v1
-        id: files
+      - uses: actions/checkout@v3
         with:
-          format: 'json'
+          fetch-depth: 0
+      - name: Get changed files
+        id: files
+        run: |
+          BASE="${{ github.event.pull_request.base.sha }}"
+          HEAD="${{ github.event.pull_request.head.sha }}"
+          ADDED=$(git diff --name-only --diff-filter=A "$BASE" "$HEAD" | jq -Rsc 'split("\n") | map(select(. != ""))')
+          MODIFIED=$(git diff --name-only --diff-filter=M "$BASE" "$HEAD" | jq -Rsc 'split("\n") | map(select(. != ""))')
+          echo "added=$ADDED" >> "$GITHUB_OUTPUT"
+          echo "modified=$MODIFIED" >> "$GITHUB_OUTPUT"
       - name: Checking the title info
         run: |
           exitCode=0

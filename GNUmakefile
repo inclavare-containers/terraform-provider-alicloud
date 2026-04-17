@@ -173,9 +173,8 @@ commit:
 
 # Local CI checks
 # Usage:
-#   make ci-check                    # Run all checks including example tests and resource integration tests (default)
+#   make ci-check                    # Run all checks including example tests (default)
 #   make ci-check SKIP_EXAMPLE=1     # Run all checks except example tests
-#   make ci-check SKIP_TEST=1        # Skip resource integration tests
 #   make ci-check SKIP_BUILD=1       # Skip build check
 #   make ci-check-quick              # Quick check (skip build, tests, errcheck, and example tests)
 ci-check: fmtcheck
@@ -201,14 +200,13 @@ ci-check: fmtcheck
 	        if [ -d "bin" ]; then mv bin/terraform-provider-alicloud . && rmdir bin; fi; \
 	    fi; \
 	fi
-	@CI_CHECK_FLAGS="--skip-build"; \
-	if [ "$(SKIP_EXAMPLE)" = "1" ]; then \
-		CI_CHECK_FLAGS="$$CI_CHECK_FLAGS --skip-example-test"; \
-	fi; \
-	if [ "$(SKIP_TEST)" = "1" ]; then \
-		CI_CHECK_FLAGS="$$CI_CHECK_FLAGS --skip-resource-test"; \
-	fi; \
-	bash "$(CURDIR)/scripts/local-ci-check.sh" $$CI_CHECK_FLAGS
+	@if [ "$(SKIP_EXAMPLE)" = "1" ]; then \
+		bash "$(CURDIR)/scripts/local-ci-check.sh" --skip-example-test --skip-build; \
+	elif [ "$(SKIP_BUILD)" = "1" ]; then \
+		bash "$(CURDIR)/scripts/local-ci-check.sh" --skip-build; \
+	else \
+		bash "$(CURDIR)/scripts/local-ci-check.sh" --skip-build; \
+	fi
 
 # Quick CI check (skip build and tests)
 ci-check-quick:
@@ -229,30 +227,7 @@ minimal-test-set:
 	fi; \
 	go run scripts/testing/minimal_test_set_calculator.go -resource $(RESOURCE) -format $$FORMAT
 
-# Sweep test resources in a specific region
-# Usage: 
-#   make sweep REGION=cn-hangzhou RESOURCE=alicloud_vpc_ipam_ipam
-#   make sweep REGION=cn-hangzhou RESOURCE=alicloud_vpc_ipam_ipam SWEEP_ALL=1  # Delete all resources, skip prefix check
-# Note: For resources with dependencies (specified in Dependencies field), include them with pipe separator.
-#       Example: RESOURCE="alicloud_vpc_ipam_ipam_pool|alicloud_vpc_ipam_ipam"
-sweep:
-	@if [ -z "$(REGION)" ]; then \
-		echo "Error: REGION is required. Usage: make sweep REGION=cn-hangzhou RESOURCE=alicloud_instance"; \
-		exit 1; \
-	fi
-	@if [ -z "$(RESOURCE)" ]; then \
-		echo "Error: RESOURCE is required. Usage: make sweep REGION=cn-hangzhou RESOURCE=alicloud_instance"; \
-		exit 1; \
-	fi
-	@if [ "$(SWEEP_ALL)" = "1" ]; then \
-		echo "Sweeping ALL $(RESOURCE) resources in region $(REGION) (skipping prefix check)..."; \
-		SWEEPER_SKIP_PREFIX=1 TF_ACC=1 go test ./alicloud -v -sweep=$(REGION) -sweep-run=$(RESOURCE); \
-	else \
-		echo "Sweeping $(RESOURCE) in region $(REGION)..."; \
-		TF_ACC=1 go test ./alicloud -v -sweep=$(REGION) -sweep-run=$(RESOURCE); \
-	fi
-
-.PHONY: build test testacc test-resource test-resource-debug vet fmt fmtcheck errcheck test-compile website website-test commit ci-check ci-check-quick minimal-test-set sweep
+.PHONY: build test testacc test-resource test-resource-debug vet fmt fmtcheck errcheck test-compile website website-test commit ci-check ci-check-quick minimal-test-set
 
 all: mac windows linux
 

@@ -2,6 +2,7 @@
 subcategory: "RDS"
 layout: "alicloud"
 page_title: "Alicloud: alicloud_rds_backup"
+sidebar_current: "docs-alicloud-resource-rds-backup"
 description: |-
   Provides a Alicloud RDS Backup resource.
 ---
@@ -9,8 +10,6 @@ description: |-
 # alicloud_rds_backup
 
 Provides a RDS Backup resource.
-
-Backup object at the instance level or database level.
 
 For information about RDS Backup and how to use it, see [What is Backup](https://www.alibabacloud.com/help/en/rds/developer-reference/api-rds-2014-08-15-createbackup).
 
@@ -41,71 +40,43 @@ resource "alicloud_rds_backup" "example" {
 }
 ```
 
-
 📚 Need more examples? [VIEW MORE EXAMPLES](https://api.aliyun.com/terraform?activeTab=sample&source=Sample&sourcePath=OfficialSample:alicloud_rds_backup&spm=docs.r.rds_backup.example&intl_lang=EN_US)
 
 ## Argument Reference
 
 The following arguments are supported:
-* `backup_method` - (Optional, ForceNew, Computed) The backup type. Valid values:  
-* `Logical`: logical backup (supported only for MySQL)  
-* `Physical`: physical backup (supported for MySQL, SQL Server, and PostgreSQL)  
-* `Snapshot`: snapshot backup (supported for all database engines)  
 
-Default value: `Physical`.  
-
--> **NOTE:**  * When using logical backup, the database must contain data (the data cannot be empty).  
-
--> **NOTE:**  * MariaDB instances support only snapshot backup, but you must specify `Physical` for this parameter.  
-
-* `backup_retention_period` - (Optional, Int, Available since v1.273.0) When the database engine is SQL Server, `BackupStrategy` is set to `db`, `BackupMethod` is `Physical`, and `BackupType` is `FullBackup`, you can specify the retention period for the backup set. Valid values: 7 to 730 days, or - 1 (permanent retention).  
-
--> **NOTE:** This parameter is immutable. Changing it after creation has no effect.
-
-* `backup_strategy` - (Optional) The backup strategy. Valid values:
-* `db`: Single-database backup
-* `instance`: Instance-level backup
-
--> **NOTE:** This parameter takes effect only under the following conditions:
-
--> **NOTE:**  - MySQL: The `BackupMethod` parameter is specified and set to `Logical`.
-
--> **NOTE:**  - SQL Server: The `BackupType` parameter is specified and set to `FullBackup`.
-
-
--> **NOTE:** This parameter is immutable. Changing it after creation has no effect.
-
-* `backup_type` - (Optional, ForceNew, Computed) The backup type. Valid values:  
-  - FullBackup: full backup  
-  - IncrementalBackup: incremental backup  
-* `db_instance_id` - (Required, ForceNew) The instance ID. You can call DescribeDBInstances to obtain it.
-* `db_name` - (Optional) A list of databases, separated by commas (,).  
-
--> **NOTE:**  This parameter takes effect only when the `BackupStrategy` parameter is specified and its value is `db`.  
-
-
--> **NOTE:** This parameter is immutable. Changing it after creation has no effect.
-
+* `backup_method` - (Optional, ForceNew) The type of backup that you want to perform. Default value: `Physical`. Valid values: `Logical`, `Physical` and `Snapshot`.
+* `backup_strategy` - (Optional) The policy that you want to use for the backup task. Valid values:
+  * **db**: specifies to perform a database-level backup.
+  * **instance**: specifies to perform an instance-level backup.
+* `backup_type` - (Optional, ForceNew) The method that you want to use for the backup task. Default value: `Auto`. Valid values:
+  * **Auto**: specifies to automatically perform a full or incremental backup.
+  * **FullBackup**: specifies to perform a full backup.
+* `db_instance_id` - (Required, ForceNew) The db instance id.
+* `db_name` - (Optional) The names of the databases whose data you want to back up. Separate the names of the databases with commas (,).
 * `remove_from_state` - (Optional) Remove form state when resource cannot be deleted. Valid values: `true` and `false`.
+
 
 ## Attributes Reference
 
 The following attributes are exported:
-* `id` - The ID of the resource supplied above. 
-* `backup_id` - The backup set ID.
-* `status` - The status of the resource.
-* `store_status` - Indicates whether the backup can be deleted.
+
+* `id` - The resource ID in terraform of Backup.
+* `backup_id` - The backup id.
+* `store_status` - Indicates whether the data backup file can be deleted. Valid values: `Enabled` and `Disabled`.
 
 ## Timeouts
 
 The `timeouts` block allows you to specify [timeouts](https://developer.hashicorp.com/terraform/language/resources/syntax#operation-timeouts) for certain actions:
-* `create` - (Defaults to 5 mins) Used when create the Backup.
-* `delete` - (Defaults to 5 mins) Used when delete the Backup.
+
+* `create` - (Defaults to 20 mins) Used when creating the backup.
+* `delete` - (Defaults to 20 mins) Used when deleting the backup.
 
 ## Import
 
 RDS Backup can be imported using the id, e.g.
 
 ```shell
-$ terraform import alicloud_rds_backup.example <backup_id>
+$ terraform import alicloud_rds_backup.example <db_instance_id>:<backup_id>
 ```

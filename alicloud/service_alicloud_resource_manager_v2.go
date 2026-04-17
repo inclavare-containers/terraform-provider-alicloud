@@ -1347,7 +1347,7 @@ func (s *ResourceManagerServiceV2) ResourceManagerResourceShareStateRefreshFuncW
 		object, err := call(id)
 		if err != nil {
 			if NotFoundError(err) {
-				return object, "", nil
+				return nil, "", nil
 			}
 			return nil, "", WrapError(err)
 		}

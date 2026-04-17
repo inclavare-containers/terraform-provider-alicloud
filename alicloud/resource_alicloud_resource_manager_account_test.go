@@ -18,10 +18,10 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestAccAliCloudResourceManagerAccount_basic0(t *testing.T) {
+func TestAccAlicloudResourceManagerAccount_basic(t *testing.T) {
 	var v map[string]interface{}
 	resourceId := "alicloud_resource_manager_account.default"
-	ra := resourceAttrInit(resourceId, AliCloudResourceManagerAccountMap0)
+	ra := resourceAttrInit(resourceId, ResourceManagerAccountMap)
 	rc := resourceCheckInitWithDescribeMethod(resourceId, &v, func() interface{} {
 		return &ResourcemanagerService{testAccProvider.Meta().(*connectivity.AliyunClient)}
 	}, "DescribeResourceManagerAccount")
@@ -29,12 +29,14 @@ func TestAccAliCloudResourceManagerAccount_basic0(t *testing.T) {
 	testAccCheck := rac.resourceAttrMapUpdateSet()
 	rand := acctest.RandIntRange(1000000, 9999999)
 	name := fmt.Sprintf("tf-testAcc%d", rand)
-	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AliCloudResourceManagerAccountBasicDependence0)
+	testAccConfig := resourceTestAccConfigFunc(resourceId, name, ResourceManagerAccountBasicdependence)
+
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
+			//testAccPreCheckEnterpriseAccountEnabled(t)
 			testAccPreCheck(t)
-			testAccPreCheckWithResourceManagerAccount(t)
 		},
+
 		IDRefreshName: resourceId,
 		Providers:     testAccProviders,
 		CheckDestroy:  nil,
@@ -42,11 +44,13 @@ func TestAccAliCloudResourceManagerAccount_basic0(t *testing.T) {
 			{
 				Config: testAccConfig(map[string]interface{}{
 					"display_name": name,
+					"folder_id":    "${data.alicloud_resource_manager_folders.example.ids.0}",
 					"force_delete": "true",
 				}),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheck(map[string]string{
 						"display_name": name,
+						"folder_id":    CHECKSET,
 					}),
 				),
 			},
@@ -62,7 +66,7 @@ func TestAccAliCloudResourceManagerAccount_basic0(t *testing.T) {
 			},
 			{
 				Config: testAccConfig(map[string]interface{}{
-					"folder_id": "${data.alicloud_resource_manager_folders.default.ids.1}",
+					"folder_id": "${data.alicloud_resource_manager_folders.example.ids.1}",
 				}),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheck(map[string]string{
@@ -71,58 +75,6 @@ func TestAccAliCloudResourceManagerAccount_basic0(t *testing.T) {
 				),
 			},
 			{
-				Config: testAccConfig(map[string]interface{}{
-					"payer_account_id": "${data.alicloud_account.default.id}",
-				}),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheck(map[string]string{
-						"payer_account_id": CHECKSET,
-					}),
-				),
-			},
-			{
-				Config: testAccConfig(map[string]interface{}{
-					"tags": map[string]string{
-						"Created": "TF",
-						"For":     "Test",
-					},
-				}),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheck(map[string]string{
-						"tags.%":       "2",
-						"tags.Created": "TF",
-						"tags.For":     "Test",
-					}),
-				),
-			},
-			{
-				Config: testAccConfig(map[string]interface{}{
-					"tags": map[string]string{
-						"Created": "TF-update",
-						"For":     "Test-update",
-					},
-				}),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheck(map[string]string{
-						"tags.%":       "2",
-						"tags.Created": "TF-update",
-						"tags.For":     "Test-update",
-					}),
-				),
-			},
-			{
-				Config: testAccConfig(map[string]interface{}{
-					"tags": REMOVEKEY,
-				}),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheck(map[string]string{
-						"tags.%":       "0",
-						"tags.Created": REMOVEKEY,
-						"tags.For":     REMOVEKEY,
-					}),
-				),
-			},
-			{
 				ResourceName:            resourceId,
 				ImportState:             true,
 				ImportStateVerify:       true,
@@ -132,10 +84,10 @@ func TestAccAliCloudResourceManagerAccount_basic0(t *testing.T) {
 	})
 }
 
-func TestAccAliCloudResourceManagerAccount_basic0_twin(t *testing.T) {
+func TestAccAlicloudResourceManagerAccount_basic1(t *testing.T) {
 	var v map[string]interface{}
 	resourceId := "alicloud_resource_manager_account.default"
-	ra := resourceAttrInit(resourceId, AliCloudResourceManagerAccountMap0)
+	ra := resourceAttrInit(resourceId, ResourceManagerAccountMap)
 	rc := resourceCheckInitWithDescribeMethod(resourceId, &v, func() interface{} {
 		return &ResourcemanagerService{testAccProvider.Meta().(*connectivity.AliyunClient)}
 	}, "DescribeResourceManagerAccount")
@@ -143,50 +95,62 @@ func TestAccAliCloudResourceManagerAccount_basic0_twin(t *testing.T) {
 	testAccCheck := rac.resourceAttrMapUpdateSet()
 	rand := acctest.RandIntRange(1000000, 9999999)
 	name := fmt.Sprintf("tf-testAcc%d", rand)
-	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AliCloudResourceManagerAccountBasicDependence0)
+	testAccConfig := resourceTestAccConfigFunc(resourceId, name, ResourceManagerAccountBasicdependence)
+
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
+			testAccPreCheckEnterpriseAccountEnabled(t)
 			testAccPreCheck(t)
-			testAccPreCheckWithResourceManagerAccount(t)
 		},
+
 		IDRefreshName: resourceId,
 		Providers:     testAccProviders,
 		CheckDestroy:  nil,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccConfig(map[string]interface{}{
-					"display_name":     name,
-					"folder_id":        "${data.alicloud_resource_manager_folders.default.ids.1}",
-					"payer_account_id": "${data.alicloud_account.default.id}",
+					"display_name": name,
+					"folder_id":    "${data.alicloud_resource_manager_folders.example.ids.0}",
 					"tags": map[string]string{
 						"Created": "TF",
-						"For":     "Test",
+						"For":     "ACCOUNT",
 					},
-					"force_delete": "true",
 				}),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheck(map[string]string{
-						"display_name":     name,
-						"folder_id":        CHECKSET,
-						"payer_account_id": CHECKSET,
-						"tags.%":           "2",
-						"tags.Created":     "TF",
-						"tags.For":         "Test",
+						"display_name": name,
+						"folder_id":    CHECKSET,
+						"tags.%":       "2",
+						"tags.Created": "TF",
+						"tags.For":     "ACCOUNT",
 					}),
 				),
 			},
 			{
-				ResourceName:            resourceId,
-				ImportState:             true,
-				ImportStateVerify:       true,
-				ImportStateVerifyIgnore: []string{"abandon_able_check_id", "force_delete"},
+				Config: testAccConfig(map[string]interface{}{
+					"tags": map[string]string{
+						"Created": "TF_Update",
+						"For":     "ACCOUNT_Update",
+					},
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"tags.%":       "2",
+						"tags.Created": "TF_Update",
+						"tags.For":     "ACCOUNT_Update",
+					}),
+				),
+			},
+			{
+				ResourceName:      resourceId,
+				ImportState:       true,
+				ImportStateVerify: true,
 			},
 		},
 	})
 }
 
-var AliCloudResourceManagerAccountMap0 = map[string]string{
-	"folder_id":             CHECKSET,
+var ResourceManagerAccountMap = map[string]string{
 	"join_method":           CHECKSET,
 	"join_time":             CHECKSET,
 	"modify_time":           CHECKSET,
@@ -195,22 +159,20 @@ var AliCloudResourceManagerAccountMap0 = map[string]string{
 	"type":                  CHECKSET,
 }
 
-func AliCloudResourceManagerAccountBasicDependence0(name string) string {
+func ResourceManagerAccountBasicdependence(name string) string {
 	return fmt.Sprintf(`
 variable "name" {
-    default = "%s"
+	default = "%s"
 }
 
-data "alicloud_account" "default" {
-}
+data "alicloud_resource_manager_folders" "example" {
 
-data "alicloud_resource_manager_folders" "default" {
 }
 `, name)
 }
 
 // lintignore: R001
-func TestUnitAliCloudResourceManagerAccount(t *testing.T) {
+func TestUnitAlicloudResourceManagerAccount(t *testing.T) {
 	p := Provider().(*schema.Provider).ResourcesMap
 	dInit, _ := schema.InternalMap(p["alicloud_resource_manager_account"].Schema).Data(nil, nil)
 	dExisted, _ := schema.InternalMap(p["alicloud_resource_manager_account"].Schema).Data(nil, nil)
@@ -487,7 +449,7 @@ func TestUnitAliCloudResourceManagerAccount(t *testing.T) {
 func TestAccAliCloudResourceManagerAccount_basic10666(t *testing.T) {
 	var v map[string]interface{}
 	resourceId := "alicloud_resource_manager_account.default"
-	ra := resourceAttrInit(resourceId, AliCloudResourceManagerAccountMap10666)
+	ra := resourceAttrInit(resourceId, AlicloudResourceManagerAccountMap10666)
 	rc := resourceCheckInitWithDescribeMethod(resourceId, &v, func() interface{} {
 		return &ResourceManagerServiceV2{testAccProvider.Meta().(*connectivity.AliyunClient)}
 	}, "DescribeResourceManagerAccount")
@@ -495,12 +457,11 @@ func TestAccAliCloudResourceManagerAccount_basic10666(t *testing.T) {
 	testAccCheck := rac.resourceAttrMapUpdateSet()
 	rand := acctest.RandIntRange(10000, 99999)
 	name := fmt.Sprintf("tfaccresourcemanager%d", rand)
-	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AliCloudResourceManagerAccountBasicDependence10666)
+	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AlicloudResourceManagerAccountBasicDependence10666)
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			testAccPreCheckWithRegions(t, true, []connectivity.Region{"cn-hangzhou"})
 			testAccPreCheck(t)
-			testAccPreCheckWithResourceManagerAccount(t)
 		},
 		IDRefreshName: resourceId,
 		Providers:     testAccProviders,
@@ -518,23 +479,9 @@ func TestAccAliCloudResourceManagerAccount_basic10666(t *testing.T) {
 				),
 			},
 			{
-				Config: testAccConfig(map[string]interface{}{
-					"folder_id": "${data.alicloud_resource_manager_folders.default.ids.1}",
-				}),
+				Config: testAccConfig(map[string]interface{}{}),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheck(map[string]string{
-						"folder_id": CHECKSET,
-					}),
-				),
-			},
-			{
-				Config: testAccConfig(map[string]interface{}{
-					"payer_account_id": "${data.alicloud_account.default.id}",
-				}),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheck(map[string]string{
-						"payer_account_id": CHECKSET,
-					}),
+					testAccCheck(map[string]string{}),
 				),
 			},
 			{
@@ -583,87 +530,27 @@ func TestAccAliCloudResourceManagerAccount_basic10666(t *testing.T) {
 				ResourceName:            resourceId,
 				ImportState:             true,
 				ImportStateVerify:       true,
-				ImportStateVerifyIgnore: []string{"account_name_prefix", "resell_account_type", "force_delete"},
+				ImportStateVerifyIgnore: []string{"account_name_prefix", "payer_account_id", "resell_account_type", "force_delete"},
 			},
 		},
 	})
 }
 
-func TestAccAliCloudResourceManagerAccount_basic10666_twin(t *testing.T) {
-	var v map[string]interface{}
-	resourceId := "alicloud_resource_manager_account.default"
-	ra := resourceAttrInit(resourceId, AliCloudResourceManagerAccountMap10666)
-	rc := resourceCheckInitWithDescribeMethod(resourceId, &v, func() interface{} {
-		return &ResourceManagerServiceV2{testAccProvider.Meta().(*connectivity.AliyunClient)}
-	}, "DescribeResourceManagerAccount")
-	rac := resourceAttrCheckInit(rc, ra)
-	testAccCheck := rac.resourceAttrMapUpdateSet()
-	rand := acctest.RandIntRange(10000, 99999)
-	name := fmt.Sprintf("tfaccresourcemanager%d", rand)
-	testAccConfig := resourceTestAccConfigFunc(resourceId, name, AliCloudResourceManagerAccountBasicDependence10666)
-	resource.Test(t, resource.TestCase{
-		PreCheck: func() {
-			testAccPreCheckWithRegions(t, true, []connectivity.Region{"cn-hangzhou"})
-			testAccPreCheck(t)
-			testAccPreCheckWithResourceManagerAccount(t)
-		},
-		IDRefreshName: resourceId,
-		Providers:     testAccProviders,
-		CheckDestroy:  nil,
-		Steps: []resource.TestStep{
-			{
-				Config: testAccConfig(map[string]interface{}{
-					"display_name":     name,
-					"folder_id":        "${data.alicloud_resource_manager_folders.default.ids.1}",
-					"payer_account_id": "${data.alicloud_account.default.id}",
-					"tags": map[string]string{
-						"Created": "TF",
-						"For":     "Test",
-					},
-					"force_delete": "true",
-				}),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheck(map[string]string{
-						"display_name":     name,
-						"folder_id":        CHECKSET,
-						"payer_account_id": CHECKSET,
-						"tags.%":           "2",
-						"tags.Created":     "TF",
-						"tags.For":         "Test",
-					}),
-				),
-			},
-			{
-				ResourceName:            resourceId,
-				ImportState:             true,
-				ImportStateVerify:       true,
-				ImportStateVerifyIgnore: []string{"account_name_prefix", "resell_account_type", "force_delete"},
-			},
-		},
-	})
-}
-
-var AliCloudResourceManagerAccountMap10666 = map[string]string{
-	"folder_id":             CHECKSET,
-	"join_method":           CHECKSET,
-	"join_time":             CHECKSET,
+var AlicloudResourceManagerAccountMap10666 = map[string]string{
+	"status":                CHECKSET,
 	"modify_time":           CHECKSET,
 	"resource_directory_id": CHECKSET,
-	"status":                CHECKSET,
-	"type":                  CHECKSET,
+	"join_method":           CHECKSET,
+	"join_time":             CHECKSET,
 }
 
-func AliCloudResourceManagerAccountBasicDependence10666(name string) string {
+func AlicloudResourceManagerAccountBasicDependence10666(name string) string {
 	return fmt.Sprintf(`
 variable "name" {
     default = "%s"
 }
 
-data "alicloud_account" "default" {
-}
 
-data "alicloud_resource_manager_folders" "default" {
-}
 `, name)
 }
 

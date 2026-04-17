@@ -1,10 +1,8 @@
 package alicloud
 
 import (
-	"encoding/json"
 	"fmt"
 	"log"
-	"strconv"
 	"time"
 
 	"github.com/aliyun/terraform-provider-alicloud/alicloud/connectivity"
@@ -21,7 +19,6 @@ func resourceAliCloudCloudFirewallInstance() *schema.Resource {
 		Importer: &schema.ResourceImporter{
 			State: schema.ImportStatePassthrough,
 		},
-		DeprecationMessage: "This resource has been deprecated since v1.269.0 and will be removed in the future. Please use 'alicloud_cloud_firewall_instance_v2' instead.",
 		Schema: map[string]*schema.Schema{
 			"payment_type": {
 				Type:         schema.TypeString,
@@ -296,14 +293,6 @@ func resourceAliCloudCloudFirewallInstanceCreate(d *schema.ResourceData, meta in
 		})
 	}
 
-	// v1 instance and subType is `Subscription` -> set CfwOverflow=true
-	if (request["ProductCode"].(string)) == "vipcloudfw" && (request["SubscriptionType"].(string)) == "Subscription" {
-		parameterMapList = append(parameterMapList, map[string]interface{}{
-			"Code":  "CfwOverflow",
-			"Value": "true",
-		})
-	}
-
 	request["Parameter"] = parameterMapList
 	wait := incrementalWait(3*time.Second, 3*time.Second)
 	err = resource.Retry(d.Timeout(schema.TimeoutCreate), func() *resource.RetryError {
@@ -396,7 +385,6 @@ func resourceAliCloudCloudFirewallInstanceRead(d *schema.ResourceData, meta inte
 
 func resourceAliCloudCloudFirewallInstanceUpdate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*connectivity.AliyunClient)
-	cloudFireWallService := CloudfwService{client}
 	bssOpenApiService := BssOpenApiService{client}
 	var response map[string]interface{}
 	d.Partial(true)
@@ -537,7 +525,7 @@ func resourceAliCloudCloudFirewallInstanceUpdate(d *schema.ResourceData, meta in
 		})
 	}
 
-	if !d.IsNewResource() && d.HasChange("cfw_log") {
+	if !d.IsNewResource() && d.HasChange("cfw_log") && !isPostPaid {
 		update = true
 
 		if v, ok := d.GetOk("cfw_log"); ok {
@@ -548,7 +536,7 @@ func resourceAliCloudCloudFirewallInstanceUpdate(d *schema.ResourceData, meta in
 		}
 	}
 
-	if !d.IsNewResource() && d.HasChange("cfw_log_storage") {
+	if !d.IsNewResource() && d.HasChange("cfw_log_storage") && !isPostPaid {
 		update = true
 	}
 	if v, ok := d.GetOk("cfw_log_storage"); ok {
@@ -662,28 +650,7 @@ func resourceAliCloudCloudFirewallInstanceUpdate(d *schema.ResourceData, meta in
 		d.SetPartial("instance_count")
 	}
 
-	cfwInstance, err := cloudFireWallService.DescribeCloudFirewallInstanceUserBuyVersion(d.Id())
-	if err != nil {
-		return WrapError(err)
-	}
-
-	// cloud firewall v2 instance cannot update the log setting with API `CreateSlsLogDispatch`
-	// legacy v1 instance can
-	isV1Instance := false
-	if cfwInstance != nil {
-		if v, ok := cfwInstance["MajorVersion"]; ok {
-			mVersion, err := strconv.Atoi(string(v.(json.Number)))
-			if err != nil {
-				return WrapError(err)
-			}
-			if mVersion == 1 {
-				isV1Instance = true
-			}
-		}
-	}
-
-	// update legacy v1 instance log setting
-	if d.HasChange("cfw_log") && d.Get("cfw_log") == true && isPostPaid && isV1Instance {
+	if d.HasChange("cfw_log") && d.Get("cfw_log") == true && isPostPaid {
 		action := "CreateSlsLogDispatch"
 		var err error
 		var endpoint string

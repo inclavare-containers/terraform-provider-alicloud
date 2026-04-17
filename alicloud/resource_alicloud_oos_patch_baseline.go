@@ -11,6 +11,7 @@ import (
 	"github.com/aliyun/terraform-provider-alicloud/alicloud/connectivity"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
 )
 
 func resourceAliCloudOosPatchBaseline() *schema.Resource {
@@ -29,8 +30,9 @@ func resourceAliCloudOosPatchBaseline() *schema.Resource {
 		},
 		Schema: map[string]*schema.Schema{
 			"approval_rules": {
-				Type:     schema.TypeString,
-				Required: true,
+				Type:         schema.TypeString,
+				Required:     true,
+				ValidateFunc: validation.StringIsJSON,
 				DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
 					equal, _ := compareJsonTemplateAreEquivalent(old, new)
 					return equal
@@ -57,7 +59,7 @@ func resourceAliCloudOosPatchBaseline() *schema.Resource {
 				Type:         schema.TypeString,
 				Required:     true,
 				ForceNew:     true,
-				ValidateFunc: StringInSlice([]string{"Windows", "CentOS", "AliyunLinux", "Ubuntu", "Debian", "Fedora", "Suse", "RockyLinux", "RedhatEnterpriseLinux", "Anolis", "AlmaLinux"}, false),
+				ValidateFunc: StringInSlice([]string{"Windows", "CentOS", "AliyunLinux", "Ubuntu", "Debian", "RedhatEnterpriseLinux", "Anolis", "AlmaLinux"}, true),
 			},
 			"patch_baseline_name": {
 				Type:     schema.TypeString,
@@ -73,7 +75,7 @@ func resourceAliCloudOosPatchBaseline() *schema.Resource {
 				Type:         schema.TypeString,
 				Optional:     true,
 				Computed:     true,
-				ValidateFunc: StringInSlice([]string{"ALLOW_AS_DEPENDENCY", "BLOCK"}, false),
+				ValidateFunc: StringInSlice([]string{"ALLOW_AS_DEPENDENCY", "BLOCK"}, true),
 			},
 			"resource_group_id": {
 				Type:     schema.TypeString,
@@ -100,12 +102,27 @@ func resourceAliCloudOosPatchBaselineCreate(d *schema.ResourceData, meta interfa
 	query := make(map[string]interface{})
 	var err error
 	request = make(map[string]interface{})
-	if v, ok := d.GetOk("patch_baseline_name"); ok {
-		request["Name"] = v
-	}
+	query["Name"] = d.Get("patch_baseline_name")
 	request["RegionId"] = client.RegionId
 	request["ClientToken"] = buildClientToken(action)
 
+	if v, ok := d.GetOk("description"); ok {
+		request["Description"] = v
+	}
+	request["OperationSystem"] = d.Get("operation_system")
+	request["ApprovalRules"] = d.Get("approval_rules")
+	if v, ok := d.GetOk("rejected_patches"); ok {
+		rejectedPatchesMaps := v.([]interface{})
+		rejectedPatchesMapsJson, err := json.Marshal(rejectedPatchesMaps)
+		if err != nil {
+			return WrapError(err)
+		}
+		request["RejectedPatches"] = string(rejectedPatchesMapsJson)
+	}
+
+	if v, ok := d.GetOk("rejected_patches_action"); ok {
+		request["RejectedPatchesAction"] = v
+	}
 	if v, ok := d.GetOk("tags"); ok {
 		tagsMap := ConvertTags(v.(map[string]interface{}))
 		request["Tags"] = tagsMap
@@ -114,50 +131,23 @@ func resourceAliCloudOosPatchBaselineCreate(d *schema.ResourceData, meta interfa
 	if v, ok := d.GetOk("resource_group_id"); ok {
 		request["ResourceGroupId"] = v
 	}
-	if v, ok := d.GetOk("description"); ok {
-		request["Description"] = v
-	}
-	request["ApprovalRules"] = d.Get("approval_rules")
-	if v, ok := d.GetOk("sources"); ok {
-		sourcesMapsArray := convertToInterfaceArray(v)
-
-		sourcesMapsJson, err := json.Marshal(sourcesMapsArray)
-		if err != nil {
-			return WrapError(err)
-		}
-		request["Sources"] = string(sourcesMapsJson)
-	}
-
-	if v, ok := d.GetOk("rejected_patches"); ok {
-		rejectedPatchesMapsArray := convertToInterfaceArray(v)
-
-		rejectedPatchesMapsJson, err := json.Marshal(rejectedPatchesMapsArray)
-		if err != nil {
-			return WrapError(err)
-		}
-		request["RejectedPatches"] = string(rejectedPatchesMapsJson)
-	}
-
-	if v, ok := d.GetOk("approved_patches"); ok {
-		approvedPatchesMapsArray := convertToInterfaceArray(v)
-
-		approvedPatchesMapsJson, err := json.Marshal(approvedPatchesMapsArray)
-		if err != nil {
-			return WrapError(err)
-		}
-		request["ApprovedPatches"] = string(approvedPatchesMapsJson)
-	}
-
 	if v, ok := d.GetOkExists("approved_patches_enable_non_security"); ok {
 		request["ApprovedPatchesEnableNonSecurity"] = v
 	}
-	request["OperationSystem"] = d.Get("operation_system")
-	if v, ok := d.GetOk("rejected_patches_action"); ok {
-		request["RejectedPatchesAction"] = v
+	if v, ok := d.GetOk("approved_patches"); ok {
+		approvedPatchesMaps := v.([]interface{})
+		request["ApprovedPatches"] = approvedPatchesMaps
+	}
+
+	if v, ok := d.GetOk("sources"); ok {
+		sourcesMaps := v.([]interface{})
+		request["Sources"] = sourcesMaps
 	}
 	wait := incrementalWait(3*time.Second, 5*time.Second)
 	err = resource.Retry(d.Timeout(schema.TimeoutCreate), func() *resource.RetryError {
 		response, err = client.RpcPost("oos", "2019-06-01", action, query, request, true)
+		request["ClientToken"] = buildClientToken(action)
+
 		if err != nil {
 			if NeedRetry(err) {
 				wait()
@@ -165,9 +155,9 @@ func resourceAliCloudOosPatchBaselineCreate(d *schema.ResourceData, meta interfa
 			}
 			return resource.NonRetryableError(err)
 		}
+		addDebug(action, response, request)
 		return nil
 	})
-	addDebug(action, response, request)
 
 	if err != nil {
 		return WrapErrorf(err, DefaultErrorMsg, "alicloud_oos_patch_baseline", action, AlibabaCloudSdkGoERROR)
@@ -198,7 +188,6 @@ func resourceAliCloudOosPatchBaselineRead(d *schema.ResourceData, meta interface
 		return WrapError(err)
 	}
 	d.Set("approval_rules", string(jsonMarshalResult))
-	d.Set("approved_patches_enable_non_security", objectRaw["ApprovedPatchesEnableNonSecurity"])
 	d.Set("create_time", objectRaw["CreatedDate"])
 	d.Set("description", objectRaw["Description"])
 	d.Set("operation_system", objectRaw["OperationSystem"])
@@ -206,24 +195,24 @@ func resourceAliCloudOosPatchBaselineRead(d *schema.ResourceData, meta interface
 	d.Set("resource_group_id", objectRaw["ResourceGroupId"])
 	d.Set("patch_baseline_name", objectRaw["Name"])
 
-	approvedPatchesRaw := make([]interface{}, 0)
+	approvedPatches1Raw := make([]interface{}, 0)
 	if objectRaw["ApprovedPatches"] != nil {
-		approvedPatchesRaw = convertToInterfaceArray(objectRaw["ApprovedPatches"])
+		approvedPatches1Raw = objectRaw["ApprovedPatches"].([]interface{})
 	}
 
-	d.Set("approved_patches", approvedPatchesRaw)
-	rejectedPatchesRaw := make([]interface{}, 0)
+	d.Set("approved_patches", approvedPatches1Raw)
+	rejectedPatches1Raw := make([]interface{}, 0)
 	if objectRaw["RejectedPatches"] != nil {
-		rejectedPatchesRaw = convertToInterfaceArray(objectRaw["RejectedPatches"])
+		rejectedPatches1Raw = objectRaw["RejectedPatches"].([]interface{})
 	}
 
-	d.Set("rejected_patches", rejectedPatchesRaw)
-	sourcesRaw := make([]interface{}, 0)
+	d.Set("rejected_patches", rejectedPatches1Raw)
+	sources1Raw := make([]interface{}, 0)
 	if objectRaw["Sources"] != nil {
-		sourcesRaw = convertToInterfaceArray(objectRaw["Sources"])
+		sources1Raw = objectRaw["Sources"].([]interface{})
 	}
 
-	d.Set("sources", sourcesRaw)
+	d.Set("sources", sources1Raw)
 	tagsMaps := objectRaw["Tags"]
 	d.Set("tags", tagsToMap(tagsMaps))
 
@@ -238,85 +227,79 @@ func resourceAliCloudOosPatchBaselineUpdate(d *schema.ResourceData, meta interfa
 	var response map[string]interface{}
 	var query map[string]interface{}
 	update := false
-
-	var err error
 	action := "UpdatePatchBaseline"
+	var err error
 	request = make(map[string]interface{})
 	query = make(map[string]interface{})
-	request["Name"] = d.Id()
+	query["Name"] = d.Id()
 	request["RegionId"] = client.RegionId
 	request["ClientToken"] = buildClientToken(action)
-	if _, ok := d.GetOk("resource_group_id"); ok && d.HasChange("resource_group_id") {
-		update = true
-	}
-	if v, ok := d.GetOk("resource_group_id"); ok || d.HasChange("resource_group_id") {
-		request["ResourceGroupId"] = v
-	}
 	if d.HasChange("description") {
 		update = true
+		request["Description"] = d.Get("description")
 	}
-	if v, ok := d.GetOk("description"); ok || d.HasChange("description") {
-		request["Description"] = v
-	}
+
 	if d.HasChange("approval_rules") {
 		update = true
 	}
 	request["ApprovalRules"] = d.Get("approval_rules")
-	if d.HasChange("sources") {
-		update = true
-	}
-	if v, ok := d.GetOk("sources"); ok || d.HasChange("sources") {
-		sourcesMapsArray := convertToInterfaceArray(v)
-
-		sourcesMapsJson, err := json.Marshal(sourcesMapsArray)
-		if err != nil {
-			return WrapError(err)
-		}
-		request["Sources"] = string(sourcesMapsJson)
-	}
-
 	if d.HasChange("rejected_patches") {
 		update = true
-	}
-	if v, ok := d.GetOk("rejected_patches"); ok || d.HasChange("rejected_patches") {
-		rejectedPatchesMapsArray := convertToInterfaceArray(v)
-
-		rejectedPatchesMapsJson, err := json.Marshal(rejectedPatchesMapsArray)
-		if err != nil {
-			return WrapError(err)
+		if v, ok := d.GetOk("rejected_patches"); ok {
+			rejectedPatchesMaps := v.([]interface{})
+			rejectedPatchesMapsJson, err := json.Marshal(rejectedPatchesMaps)
+			if err != nil {
+				return WrapError(err)
+			}
+			request["RejectedPatches"] = string(rejectedPatchesMapsJson)
 		}
-		request["RejectedPatches"] = string(rejectedPatchesMapsJson)
 	}
 
-	if d.HasChange("approved_patches") {
+	if d.HasChange("rejected_patches_action") {
 		update = true
+		request["RejectedPatchesAction"] = d.Get("rejected_patches_action")
 	}
-	if v, ok := d.GetOk("approved_patches"); ok || d.HasChange("approved_patches") {
-		approvedPatchesMapsArray := convertToInterfaceArray(v)
 
-		approvedPatchesMapsJson, err := json.Marshal(approvedPatchesMapsArray)
-		if err != nil {
-			return WrapError(err)
-		}
-		request["ApprovedPatches"] = string(approvedPatchesMapsJson)
+	if _, ok := d.GetOk("resource_group_id"); ok && d.HasChange("resource_group_id") {
+		update = true
+		request["ResourceGroupId"] = d.Get("resource_group_id")
 	}
 
 	if d.HasChange("approved_patches_enable_non_security") {
 		update = true
+		request["ApprovedPatchesEnableNonSecurity"] = d.Get("approved_patches_enable_non_security")
 	}
-	if v, ok := d.GetOkExists("approved_patches_enable_non_security"); ok || d.HasChange("approved_patches_enable_non_security") {
-		request["ApprovedPatchesEnableNonSecurity"] = v
-	}
-	if d.HasChange("rejected_patches_action") {
+
+	if d.HasChange("approved_patches") {
 		update = true
+		if v, ok := d.GetOk("approved_patches"); ok {
+			approvedPatchesMaps := v.([]interface{})
+			approvedPatchesMapsJson, err := json.Marshal(approvedPatchesMaps)
+			if err != nil {
+				return WrapError(err)
+			}
+			request["ApprovedPatches"] = string(approvedPatchesMapsJson)
+		}
 	}
-	if v, ok := d.GetOk("rejected_patches_action"); ok || d.HasChange("rejected_patches_action") {
-		request["RejectedPatchesAction"] = v
+
+	if d.HasChange("sources") {
+		update = true
+		if v, ok := d.GetOk("sources"); ok {
+			sourcesMaps := v.([]interface{})
+			sourcesMapsJson, err := json.Marshal(sourcesMaps)
+			if err != nil {
+				return WrapError(err)
+			}
+			request["Sources"] = string(sourcesMapsJson)
+		}
 	}
+
 	if update {
 		wait := incrementalWait(3*time.Second, 5*time.Second)
 		err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
 			response, err = client.RpcPost("oos", "2019-06-01", action, query, request, true)
+			request["ClientToken"] = buildClientToken(action)
+
 			if err != nil {
 				if NeedRetry(err) {
 					wait()
@@ -324,9 +307,9 @@ func resourceAliCloudOosPatchBaselineUpdate(d *schema.ResourceData, meta interfa
 				}
 				return resource.NonRetryableError(err)
 			}
+			addDebug(action, response, request)
 			return nil
 		})
-		addDebug(action, response, request)
 		if err != nil {
 			return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
 		}
@@ -334,9 +317,10 @@ func resourceAliCloudOosPatchBaselineUpdate(d *schema.ResourceData, meta interfa
 
 	if d.HasChange("tags") {
 		oosServiceV2 := OosServiceV2{client}
-		if err := oosServiceV2.SetOssResourceTags(d, "patchbaseline"); err != nil {
+		if err := oosServiceV2.SetResourceTags(d, "patchbaseline"); err != nil {
 			return WrapError(err)
 		}
+		d.SetPartial("tags")
 	}
 	return resourceAliCloudOosPatchBaselineRead(d, meta)
 }
@@ -350,12 +334,13 @@ func resourceAliCloudOosPatchBaselineDelete(d *schema.ResourceData, meta interfa
 	query := make(map[string]interface{})
 	var err error
 	request = make(map[string]interface{})
-	request["Name"] = d.Id()
+	query["Name"] = d.Id()
 	request["RegionId"] = client.RegionId
 
 	wait := incrementalWait(3*time.Second, 5*time.Second)
 	err = resource.Retry(d.Timeout(schema.TimeoutDelete), func() *resource.RetryError {
 		response, err = client.RpcPost("oos", "2019-06-01", action, query, request, true)
+
 		if err != nil {
 			if NeedRetry(err) {
 				wait()
@@ -363,14 +348,11 @@ func resourceAliCloudOosPatchBaselineDelete(d *schema.ResourceData, meta interfa
 			}
 			return resource.NonRetryableError(err)
 		}
+		addDebug(action, response, request)
 		return nil
 	})
-	addDebug(action, response, request)
 
 	if err != nil {
-		if NotFoundError(err) {
-			return nil
-		}
 		return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
 	}
 

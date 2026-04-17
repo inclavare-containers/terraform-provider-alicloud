@@ -53,6 +53,7 @@ func testSweepMSECluster(region string) error {
 		if err != nil {
 			return WrapErrorf(err, FailedGetAttributeMsg, action, "$.Data", response)
 		}
+		sweeped := false
 		result, _ := resp.([]interface{})
 		for _, v := range result {
 			item := v.(map[string]interface{})
@@ -66,6 +67,7 @@ func testSweepMSECluster(region string) error {
 				log.Printf("[INFO] Skipping Mse Clusters: %s (%s)", item["ClusterAliasName"], item["InstanceId"])
 				continue
 			}
+			sweeped = true
 			action = "DeleteCluster"
 			request := map[string]interface{}{
 				"InstanceId": item["InstanceId"],
@@ -74,10 +76,10 @@ func testSweepMSECluster(region string) error {
 			if err != nil {
 				log.Printf("[ERROR] Failed to delete Mse Clusters (%s (%s)): %s", item["ClusterAliasName"].(string), item["InstanceId"].(string), err)
 			}
-
-			// Waiting 30 seconds to ensure these Mse Clusters have been deleted.
-			time.Sleep(30 * time.Second)
-
+			if sweeped {
+				// Waiting 30 seconds to ensure these Mse Clusters have been deleted.
+				time.Sleep(30 * time.Second)
+			}
 			log.Printf("[INFO] Delete mse cluster success: %s ", item["InstanceId"].(string))
 		}
 		if len(result) < PageSizeLarge {

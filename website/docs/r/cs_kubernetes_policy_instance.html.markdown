@@ -19,7 +19,7 @@ For information about Container Service for Kubernetes (ACK) Policy Instance and
 Basic Usage
 
 <div style="display: block;margin-bottom: 40px;"><div class="oics-button" style="float: right;position: absolute;margin-bottom: 10px;">
-  <a href="https://api.aliyun.com/terraform?resource=alicloud_cs_kubernetes_policy_instance&exampleId=f7586c37-a483-bb38-9ed8-f40c7cf24848943a61cb&activeTab=example&spm=docs.r.cs_kubernetes_policy_instance.0.f7586c37a4&intl_lang=EN_US" target="_blank">
+  <a href="https://api.aliyun.com/terraform?resource=alicloud_cs_kubernetes_policy_instance&exampleId=ddc22fa8-f24d-5735-a4e8-4238ce9f99e3efa68476&activeTab=example&spm=docs.r.cs_kubernetes_policy_instance.0.ddc22fa8f2&intl_lang=EN_US" target="_blank">
     <img alt="Open in AliCloud" src="https://img.alicdn.com/imgextra/i1/O1CN01hjjqXv1uYUlY56FyX_!!6000000006049-55-tps-254-36.svg" style="max-height: 44px; max-width: 100%;">
   </a>
 </div></div>
@@ -35,7 +35,7 @@ variable "vswitch_cidrs" {
 }
 
 variable "cluster_name" {
-  default = "terraform-example-"
+  default = "example-create-cluster"
 }
 
 variable "pod_cidr" {
@@ -46,7 +46,16 @@ variable "service_cidr" {
   default = "192.168.0.0/16"
 }
 
+variable "policy_name" {
+  default = "ACKPSPHostNetworkingPorts"
+}
+
 data "alicloud_enhanced_nat_available_zones" "enhanced" {}
+
+resource "random_integer" "default" {
+  max = 99999
+  min = 10000
+}
 
 resource "alicloud_vpc" "CreateVPC" {
   cidr_block = var.vpc_cidr
@@ -61,8 +70,8 @@ resource "alicloud_vswitch" "CreateVSwitch" {
 }
 
 resource "alicloud_cs_managed_kubernetes" "CreateCluster" {
-  name_prefix                  = var.cluster_name
-  cluster_spec                 = "ack.standard"
+  name                         = "${var.cluster_name}-${random_integer.default.result}"
+  cluster_spec                 = "ack.pro.small"
   profile                      = "Default"
   vswitch_ids                  = split(",", join(",", alicloud_vswitch.CreateVSwitch.*.id))
   pod_cidr                     = var.pod_cidr
@@ -92,23 +101,10 @@ resource "alicloud_cs_managed_kubernetes" "CreateCluster" {
   }
 }
 
-resource "alicloud_cs_kubernetes_policy_instance" "base" {
+resource "alicloud_cs_kubernetes_policy_instance" "default" {
   cluster_id  = alicloud_cs_managed_kubernetes.CreateCluster.id
-  policy_name = "ACKPSPReadOnlyRootFilesystem"
-}
-
-resource "alicloud_cs_kubernetes_policy_instance" "string" {
-  cluster_id  = alicloud_cs_managed_kubernetes.CreateCluster.id
-  policy_name = "ACKPVSizeConstraint"
+  policy_name = var.policy_name
   action      = "deny"
-  parameters = {
-    maxSize = "60Gi"
-  }
-}
-
-resource "alicloud_cs_kubernetes_policy_instance" "int_bool" {
-  cluster_id  = alicloud_cs_managed_kubernetes.CreateCluster.id
-  policy_name = "ACKPSPHostNetworkingPorts"
   namespaces = [
     "test"
   ]
@@ -116,41 +112,6 @@ resource "alicloud_cs_kubernetes_policy_instance" "int_bool" {
     hostNetwork = true
     min         = 20
     max         = 200
-  }
-}
-
-resource "alicloud_cs_kubernetes_policy_instance" "array" {
-  cluster_id  = alicloud_cs_managed_kubernetes.CreateCluster.id
-  policy_name = "ACKAllowedRepos"
-  parameters = {
-    repos = jsonencode([
-      "docker.io/library/nginx",
-      "docker.io/library/redis"
-    ])
-  }
-}
-
-resource "alicloud_cs_kubernetes_policy_instance" "object" {
-  cluster_id  = alicloud_cs_managed_kubernetes.CreateCluster.id
-  policy_name = "ACKRequiredLabels"
-  action      = "warn"
-  namespaces = [
-    "test1",
-    "test2",
-    "test3"
-  ]
-  parameters = {
-    labels = jsonencode([
-      {
-        key          = "test"
-        allowedRegex = "^test.*$"
-      },
-      {
-        key          = "env"
-        allowedRegex = "^(dev|prod)$"
-        optional     = false
-      }
-    ])
   }
 }
 ```

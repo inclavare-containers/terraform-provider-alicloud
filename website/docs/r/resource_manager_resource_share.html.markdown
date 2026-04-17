@@ -21,14 +21,14 @@ For information about Resource Manager Resource Share and how to use it, see [Wh
 Basic Usage
 
 <div style="display: block;margin-bottom: 40px;"><div class="oics-button" style="float: right;position: absolute;margin-bottom: 10px;">
-  <a href="https://api.aliyun.com/terraform?resource=alicloud_resource_manager_resource_share&exampleId=b5911fb5-5a90-2743-eea5-eaaa21a4522044676874&activeTab=example&spm=docs.r.resource_manager_resource_share.0.b5911fb55a&intl_lang=EN_US" target="_blank">
+  <a href="https://api.aliyun.com/terraform?resource=alicloud_resource_manager_resource_share&exampleId=6be253ac-e5f2-8690-f13b-fe32084c06e39ce31fd6&activeTab=example&spm=docs.r.resource_manager_resource_share.0.6be253ace5&intl_lang=EN_US" target="_blank">
     <img alt="Open in AliCloud" src="https://img.alicdn.com/imgextra/i1/O1CN01hjjqXv1uYUlY56FyX_!!6000000006049-55-tps-254-36.svg" style="max-height: 44px; max-width: 100%;">
   </a>
 </div></div>
 
 ```terraform
 variable "name" {
-  default = "terraform-example"
+  default = "tf-example"
 }
 
 resource "alicloud_resource_manager_resource_share" "example" {
@@ -54,8 +54,6 @@ The following arguments are supported:
 -> **NOTE:** The parameter is immutable after resource creation. It only applies during resource creation and has no effect when modified post-creation.
 
 * `resource_group_id` - (Optional, Computed, Available since v1.261.0) The ID of the resource group
-* `resource_properties` - (Optional, Set, Available since v1.274.0) A list of resource properties. See [`resource_properties`](#resource_properties) below.
-
 * `resource_share_name` - (Required) The name of resource share.
 * `resources` - (Optional, List, Available since v1.261.0) List of shared resources. See [`resources`](#resources) below.
 
@@ -66,11 +64,6 @@ The following arguments are supported:
 
 -> **NOTE:** The parameter is immutable after resource creation. It only applies during resource creation and has no effect when modified post-creation.
 
-### `resource_properties`
-
-The resource_properties supports the following:
-* `property` - (Optional, Available since v1.274.0) The resource property.
-* `resource_arn` - (Optional, Available since v1.274.0) The ARN of the resource.
 
 ### `resources`
 

@@ -12,8 +12,8 @@ import (
 
 func dataSourceAlicloudCRNamespaces() *schema.Resource {
 	return &schema.Resource{
-		Read:               dataSourceAlicloudCRNamespacesRead,
-		DeprecationMessage: "Data source `alicloud_cr_namespaces` has been deprecated and will be removed in the future.",
+		Read: dataSourceAlicloudCRNamespacesRead,
+
 		Schema: map[string]*schema.Schema{
 			"name_regex": {
 				Type:         schema.TypeString,

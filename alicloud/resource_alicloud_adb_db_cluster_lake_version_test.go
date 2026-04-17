@@ -45,8 +45,7 @@ func TestAccAliCloudADBDBClusterLakeVersion_basic0(t *testing.T) {
 					"vpc_id":             "${data.alicloud_vpcs.default.ids.0}",
 					"vswitch_id":         "${data.alicloud_vswitches.default.ids.0}",
 					"zone_id":            "${data.alicloud_adb_zones.default.ids.0}",
-					"payment_type":       "Subscription",
-					"period":             "1",
+					"payment_type":       "PayAsYouGo",
 					"compute_resource":   "16ACU",
 					"storage_resource":   "0ACU",
 				}),
@@ -56,7 +55,7 @@ func TestAccAliCloudADBDBClusterLakeVersion_basic0(t *testing.T) {
 						"vpc_id":             CHECKSET,
 						"vswitch_id":         CHECKSET,
 						"zone_id":            CHECKSET,
-						"payment_type":       "Subscription",
+						"payment_type":       "PayAsYouGo",
 						"compute_resource":   "16ACU",
 						"storage_resource":   "0ACU",
 					}),
@@ -79,6 +78,18 @@ func TestAccAliCloudADBDBClusterLakeVersion_basic0(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheck(map[string]string{
 						"storage_resource": "24ACU",
+					}),
+				),
+			},
+			{
+				Config: testAccConfig(map[string]interface{}{
+					"compute_resource": "16ACU",
+					"storage_resource": "0ACU",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"compute_resource": "16ACU",
+						"storage_resource": "0ACU",
 					}),
 				),
 			},
@@ -133,41 +144,10 @@ func TestAccAliCloudADBDBClusterLakeVersion_basic0(t *testing.T) {
 				),
 			},
 			{
-				Config: testAccConfig(map[string]interface{}{
-					"payment_type": "PayAsYouGo",
-				}),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheck(map[string]string{
-						"payment_type": "PayAsYouGo",
-					}),
-				),
-			},
-			{
-				Config: testAccConfig(map[string]interface{}{
-					"payment_type": "Subscription",
-					"period":       "1",
-				}),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheck(map[string]string{
-						"payment_type": "Subscription",
-					}),
-				),
-			},
-			{
-				Config: testAccConfig(map[string]interface{}{
-					"payment_type": "PayAsYouGo",
-				}),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheck(map[string]string{
-						"payment_type": "PayAsYouGo",
-					}),
-				),
-			},
-			{
 				ResourceName:            resourceId,
 				ImportState:             true,
 				ImportStateVerify:       true,
-				ImportStateVerifyIgnore: []string{"period", "enable_default_resource_group", "source_db_cluster_id", "backup_set_id", "restore_type", "restore_to_time"},
+				ImportStateVerifyIgnore: []string{"enable_default_resource_group", "source_db_cluster_id", "backup_set_id", "restore_type", "restore_to_time"},
 			},
 		},
 	})

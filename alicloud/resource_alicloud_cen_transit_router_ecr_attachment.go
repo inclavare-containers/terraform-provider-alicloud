@@ -1,3 +1,4 @@
+// Package alicloud. This file is generated automatically. Please do not modify it manually, thank you!
 package alicloud
 
 import (
@@ -5,6 +6,7 @@ import (
 	"log"
 	"time"
 
+	util "github.com/alibabacloud-go/tea-utils/service"
 	"github.com/aliyun/terraform-provider-alicloud/alicloud/connectivity"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
@@ -79,32 +81,34 @@ func resourceAliCloudCenTransitRouterEcrAttachmentCreate(d *schema.ResourceData,
 	request["RegionId"] = client.RegionId
 	request["ClientToken"] = buildClientToken(action)
 
+	request["EcrId"] = d.Get("ecr_id")
 	if v, ok := d.GetOkExists("ecr_owner_id"); ok {
 		request["EcrOwnerId"] = v
 	}
 	if v, ok := d.GetOk("cen_id"); ok {
 		request["CenId"] = v
 	}
+	if v, ok := d.GetOk("transit_router_id"); ok {
+		request["TransitRouterId"] = v
+	}
+	if v, ok := d.GetOk("transit_router_ecr_attachment_name"); ok {
+		request["TransitRouterAttachmentName"] = v
+	}
+	if v, ok := d.GetOk("transit_router_attachment_description"); ok {
+		request["TransitRouterAttachmentDescription"] = v
+	}
 	if v, ok := d.GetOk("tags"); ok {
 		tagsMap := ConvertTags(v.(map[string]interface{}))
 		request = expandTagsToMap(request, tagsMap)
 	}
 
-	if v, ok := d.GetOk("transit_router_ecr_attachment_name"); ok {
-		request["TransitRouterAttachmentName"] = v
-	}
-	if v, ok := d.GetOk("transit_router_id"); ok {
-		request["TransitRouterId"] = v
-	}
-	if v, ok := d.GetOk("transit_router_attachment_description"); ok {
-		request["TransitRouterAttachmentDescription"] = v
-	}
-	request["EcrId"] = d.Get("ecr_id")
+	runtime := util.RuntimeOptions{}
+	runtime.SetAutoretry(true)
 	wait := incrementalWait(3*time.Second, 5*time.Second)
 	err = resource.Retry(d.Timeout(schema.TimeoutCreate), func() *resource.RetryError {
 		response, err = client.RpcPost("Cbn", "2017-09-12", action, query, request, true)
 		if err != nil {
-			if IsExpectedErrors(err, []string{"Operation.Blocking", "IncorrectStatus.TransitRouter", "InvalidStatus.ResourceStatus", "IncorrectStatus.EcrResource", "Throttling.User"}) || NeedRetry(err) {
+			if IsExpectedErrors(err, []string{"Operation.Blocking", "Throttling.User", "InvalidStatus.ResourceStatus", "IncorrectStatus.TransitRouter", "IncorrectStatus.EcrResource"}) || NeedRetry(err) {
 				wait()
 				return resource.RetryableError(err)
 			}
@@ -143,14 +147,30 @@ func resourceAliCloudCenTransitRouterEcrAttachmentRead(d *schema.ResourceData, m
 		return WrapError(err)
 	}
 
-	d.Set("cen_id", objectRaw["CenId"])
-	d.Set("create_time", objectRaw["CreationTime"])
-	d.Set("ecr_id", objectRaw["EcrId"])
-	d.Set("ecr_owner_id", objectRaw["EcrOwnerId"])
-	d.Set("status", objectRaw["Status"])
-	d.Set("transit_router_attachment_description", objectRaw["TransitRouterAttachmentDescription"])
-	d.Set("transit_router_ecr_attachment_name", objectRaw["TransitRouterAttachmentName"])
-	d.Set("transit_router_id", objectRaw["TransitRouterId"])
+	if objectRaw["CenId"] != nil {
+		d.Set("cen_id", objectRaw["CenId"])
+	}
+	if objectRaw["CreationTime"] != nil {
+		d.Set("create_time", objectRaw["CreationTime"])
+	}
+	if objectRaw["EcrId"] != nil {
+		d.Set("ecr_id", objectRaw["EcrId"])
+	}
+	if objectRaw["EcrOwnerId"] != nil {
+		d.Set("ecr_owner_id", objectRaw["EcrOwnerId"])
+	}
+	if objectRaw["Status"] != nil {
+		d.Set("status", objectRaw["Status"])
+	}
+	if objectRaw["TransitRouterAttachmentDescription"] != nil {
+		d.Set("transit_router_attachment_description", objectRaw["TransitRouterAttachmentDescription"])
+	}
+	if objectRaw["TransitRouterAttachmentName"] != nil {
+		d.Set("transit_router_ecr_attachment_name", objectRaw["TransitRouterAttachmentName"])
+	}
+	if objectRaw["TransitRouterId"] != nil {
+		d.Set("transit_router_id", objectRaw["TransitRouterId"])
+	}
 
 	tagsMaps := objectRaw["Tags"]
 	d.Set("tags", tagsToMap(tagsMaps))
@@ -165,8 +185,8 @@ func resourceAliCloudCenTransitRouterEcrAttachmentUpdate(d *schema.ResourceData,
 	var query map[string]interface{}
 	update := false
 
-	var err error
 	action := "UpdateTransitRouterEcrAttachmentAttribute"
+	var err error
 	request = make(map[string]interface{})
 	query = make(map[string]interface{})
 	request["TransitRouterAttachmentId"] = d.Id()
@@ -183,6 +203,8 @@ func resourceAliCloudCenTransitRouterEcrAttachmentUpdate(d *schema.ResourceData,
 	}
 
 	if update {
+		runtime := util.RuntimeOptions{}
+		runtime.SetAutoretry(true)
 		wait := incrementalWait(3*time.Second, 5*time.Second)
 		err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
 			response, err = client.RpcPost("Cbn", "2017-09-12", action, query, request, true)
@@ -228,9 +250,13 @@ func resourceAliCloudCenTransitRouterEcrAttachmentDelete(d *schema.ResourceData,
 
 	request["ClientToken"] = buildClientToken(action)
 
+	runtime := util.RuntimeOptions{}
+	runtime.SetAutoretry(true)
 	wait := incrementalWait(3*time.Second, 5*time.Second)
 	err = resource.Retry(d.Timeout(schema.TimeoutDelete), func() *resource.RetryError {
 		response, err = client.RpcPost("Cbn", "2017-09-12", action, query, request, true)
+		request["ClientToken"] = buildClientToken(action)
+
 		if err != nil {
 			if IsExpectedErrors(err, []string{"Operation.Blocking", "IncorrectStatus.EcrResource"}) || NeedRetry(err) {
 				wait()
@@ -250,7 +276,7 @@ func resourceAliCloudCenTransitRouterEcrAttachmentDelete(d *schema.ResourceData,
 	}
 
 	cenServiceV2 := CenServiceV2{client}
-	stateConf := BuildStateConf([]string{}, []string{""}, d.Timeout(schema.TimeoutDelete), 5*time.Second, cenServiceV2.CenTransitRouterEcrAttachmentStateRefreshFunc(d.Id(), "Status", []string{}))
+	stateConf := BuildStateConf([]string{}, []string{}, d.Timeout(schema.TimeoutDelete), 5*time.Second, cenServiceV2.CenTransitRouterEcrAttachmentStateRefreshFunc(d.Id(), "Status", []string{}))
 	if _, err := stateConf.WaitForState(); err != nil {
 		return WrapErrorf(err, IdMsg, d.Id())
 	}

@@ -38,7 +38,6 @@ func resourceAliCloudCenTransitRouterCidr() *schema.Resource {
 			"publish_cidr_route": {
 				Type:     schema.TypeBool,
 				Optional: true,
-				Computed: true,
 			},
 			"transit_router_cidr_id": {
 				Type:     schema.TypeString,
